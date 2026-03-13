@@ -6,7 +6,7 @@ services:
     dockerContext: ./backend
     region: oregon
     plan: free
-    healthCheckPath: /api/insights/health
+    healthCheckPath: /actuator/health
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
@@ -17,23 +17,13 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGINS
-        value: https://quantify-trading.vercel.app
+        value: https://quantify-trading.vercel.app,http://localhost:3000,http://localhost:5173
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODEL
         value: llama-3.3-70b-versatile
       - key: OLLAMA_BASE_URL
         sync: false
-      - key: REDIS_HOST
-        fromService:
-          type: redis
-          name: quantify-cache
-          property: host
-      - key: REDIS_PORT
-        fromService:
-          type: redis
-          name: quantify-cache
-          property: port
 
 databases:
   - name: quantify-db
@@ -41,9 +31,3 @@ databases:
     user: quantify
     plan: free
     region: oregon
-
-# Redis cache (optional - comment out if not needed)
-# redis:
-#   - name: quantify-cache
-#     plan: free
-#     region: oregon
