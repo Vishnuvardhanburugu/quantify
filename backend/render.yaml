@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: quantify-api
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    region: oregon
+    plan: free
+    healthCheckPath: /api/insights/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DATABASE_URL
+        fromDatabase:
+          name: quantify-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://quantify-trading.vercel.app
+      - key: OLLAMA_BASE_URL
+        sync: false
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: quantify-cache
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: quantify-cache
+          property: port
+
+databases:
+  - name: quantify-db
+    databaseName: quantify
+    user: quantify
+    plan: free
+    region: oregon
+
+# Redis cache (optional - comment out if not needed)
+# redis:
+#   - name: quantify-cache
+#     plan: free
+#     region: oregon
