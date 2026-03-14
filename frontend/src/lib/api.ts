@@ -2,6 +2,10 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+  timeout: 60000, // Increased to 60 seconds for cold starts
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 // Add a request interceptor to include the JWT token
@@ -24,13 +28,22 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle timeout errors more gracefully
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      console.error('Request timeout - server may be waking up');
+      return Promise.reject({
+        ...error,
+        message: 'Server is waking up. Please try again in a moment.',
+      });
+    }
+
     if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
       originalRequest._retry = true;
       const refreshToken = localStorage.getItem('refreshToken');
 
       if (refreshToken) {
         try {
-          const response = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {
+          const response = await axios.post(`${api.defaults.baseURL}/api/auth/refresh`, {
             refreshToken,
           });
 
