@@ -24,8 +24,16 @@ USER spring:spring
 # Copy jar from build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Expose port
-EXPOSE 8080
+# Environment variables with defaults
+ENV PORT=8080
+ENV JAVA_OPTS="-Xmx512m -Xms256m"
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Expose port (informational - Render uses PORT env var)
+EXPOSE ${PORT}
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/actuator/health || exit 1
+
+# Run the application with explicit port binding
+ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS} -Dserver.port=${PORT} -jar app.jar"]
