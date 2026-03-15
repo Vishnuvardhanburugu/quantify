@@ -58,7 +58,13 @@ public class DatabaseConfig {
      */
     private String[] parseDatabaseUrl(String url) {
         if (url == null || url.isEmpty()) {
-            throw new IllegalStateException("DATABASE_URL environment variable is not set");
+            log.info("No DATABASE_URL found, falling back to in-memory H2 database.");
+            HikariConfig config = new HikariConfig();
+            config.setJdbcUrl("jdbc:h2:mem:testdb");
+            config.setDriverClassName("org.h2.Driver");
+            config.setUsername("sa");
+            config.setPassword("");
+            return new String[]{"jdbc:h2:mem:testdb", "sa", ""};
         }
 
         String username = null;

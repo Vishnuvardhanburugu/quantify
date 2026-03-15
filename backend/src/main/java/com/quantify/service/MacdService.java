@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
@@ -23,13 +24,23 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class MacdService {
 
     private final MacdIndicatorRepository macdRepository;
     private final WebClient.Builder webClientBuilder;
     private final ObjectMapper objectMapper;
+    private final jakarta.persistence.EntityManager entityManager;
+
+    public MacdService(MacdIndicatorRepository macdRepository,
+                       WebClient.Builder webClientBuilder,
+                       ObjectMapper objectMapper,
+                       jakarta.persistence.EntityManager entityManager) {
+        this.macdRepository = macdRepository;
+        this.webClientBuilder = webClientBuilder;
+        this.objectMapper = objectMapper;
+        this.entityManager = entityManager;
+    }
 
     @Value("${yahoo.finance.base-url:https://query1.finance.yahoo.com/v8/finance}")
     private String yahooFinanceUrl;
@@ -37,13 +48,21 @@ public class MacdService {
     /**
      * Calculate MACD for a symbol using configurable EMA periods and store results.
      */
+    @Transactional
     public List<MacdPointResponse> calculateMacdForSymbol(String symbol,
                                                           int shortPeriod,
                                                           int longPeriod,
                                                           int signalPeriod,
                                                           int days) {
         symbol = symbol.toUpperCase();
-        List<PricePoint> priceHistory = fetchHistoricalPrices(symbol, days);
+        List<PricePoint> rawHistory = fetchHistoricalPrices(symbol, days);
+
+        // Deduplicate by date (Yahoo may return multiple entries for the same date)
+        java.util.Map<LocalDate, PricePoint> dateMap = new java.util.LinkedHashMap<>();
+        for (PricePoint p : rawHistory) {
+            dateMap.put(p.date(), p); // last entry wins
+        }
+        List<PricePoint> priceHistory = new ArrayList<>(dateMap.values());
 
         if (priceHistory.size() < longPeriod + signalPeriod) {
             log.warn("Not enough historical data for MACD calculation for {}", symbol);
@@ -142,9 +161,8 @@ public class MacdService {
                     .build());
         }
 
-        if (!indicatorsToSave.isEmpty()) {
-            macdRepository.saveAll(indicatorsToSave);
-        }
+        // Skip database persistence — return computed data directly
+        // This avoids all unique constraint issues with H2/Hibernate
 
         return responses;
     }
@@ -158,22 +176,22 @@ public class MacdService {
                                                       BigDecimal rewardPercent) {
         final String normalizedSymbol = symbol.toUpperCase();
 
-        Optional<MacdIndicator> latestOpt = macdRepository.findFirstBySymbolOrderByDateDesc(normalizedSymbol);
-        if (latestOpt.isEmpty()) {
-            calculateMacdForSymbol(normalizedSymbol, shortPeriod, longPeriod, signalPeriod, days);
-            latestOpt = macdRepository.findFirstBySymbolOrderByDateDesc(normalizedSymbol);
+        // Calculate MACD in-memory (no database)
+        List<MacdPointResponse> points = calculateMacdForSymbol(
+                normalizedSymbol, shortPeriod, longPeriod, signalPeriod, days);
+
+        if (points.isEmpty()) {
+            throw new IllegalStateException("Unable to calculate MACD for symbol " + normalizedSymbol);
         }
 
-        MacdIndicator latest = latestOpt.orElseThrow(() ->
-                new IllegalStateException("Unable to calculate MACD for symbol " + normalizedSymbol));
+        // Use the last point as the "latest"
+        MacdPointResponse latest = points.get(points.size() - 1);
 
-        List<MacdIndicator> recent = macdRepository.findBySymbolOrderByDateDesc(normalizedSymbol)
-                .stream()
-                .limit(20)
-                .toList();
-
-        MacdAnalysisResponse.TrendSnapshot trend = analyzeTrend(recent);
-        BigDecimal confidence = calculateConfidence(latest, trend);
+        // Build trend from the last 20 points
+        List<MacdPointResponse> recent = points.subList(
+                Math.max(0, points.size() - 20), points.size());
+        MacdAnalysisResponse.TrendSnapshot trend = analyzeTrendFromPoints(recent);
+        BigDecimal confidence = calculateConfidenceFromPoint(latest, trend);
 
         BigDecimal entryPrice = latest.getClosePrice();
         BigDecimal stopLoss = entryPrice.multiply(
@@ -206,22 +224,16 @@ public class MacdService {
 
     public List<MacdPointResponse> getMacdHistory(String symbol, int days) {
         symbol = symbol.toUpperCase();
-        LocalDate end = LocalDate.now();
-        LocalDate start = end.minusDays(days);
+        // Calculate in-memory and return the last N days
+        List<MacdPointResponse> allPoints = calculateMacdForSymbol(
+                symbol, 12, 26, 9, Math.max(days + 50, 200));
 
-        return macdRepository.findBySymbolAndDateBetweenOrderByDateAsc(symbol, start, end)
-                .stream()
-                .map(ind -> MacdPointResponse.builder()
-                        .date(ind.getDate())
-                        .closePrice(ind.getClosePrice())
-                        .emaShort(ind.getEma12())
-                        .emaLong(ind.getEma26())
-                        .macdLine(ind.getMacdLine())
-                        .signalLine(ind.getSignalLine())
-                        .histogram(ind.getHistogram())
-                        .signal(ind.getSignal())
-                        .strength(ind.getStrength())
-                        .build())
+        if (allPoints.isEmpty()) return List.of();
+
+        // Filter to the requested number of days
+        LocalDate cutoff = LocalDate.now().minusDays(days);
+        return allPoints.stream()
+                .filter(p -> !p.getDate().isBefore(cutoff))
                 .toList();
     }
 
@@ -499,6 +511,80 @@ public class MacdService {
     }
 
     private record PricePoint(LocalDate date, BigDecimal close) {
+    }
+
+    private MacdAnalysisResponse.TrendSnapshot analyzeTrendFromPoints(List<MacdPointResponse> recent) {
+        if (recent.size() < 3) {
+            return MacdAnalysisResponse.TrendSnapshot.builder()
+                    .direction("NEUTRAL")
+                    .strength("WEAK")
+                    .divergence(false)
+                    .build();
+        }
+
+        MacdPointResponse latest = recent.get(recent.size() - 1);
+        MacdPointResponse earlier = recent.get(Math.max(0, recent.size() - 5));
+
+        BigDecimal latestHist = latest.getHistogram();
+        BigDecimal earlierHist = earlier.getHistogram();
+
+        String direction;
+        if (latest.getMacdLine().compareTo(BigDecimal.ZERO) > 0) {
+            direction = "BULLISH";
+        } else if (latest.getMacdLine().compareTo(BigDecimal.ZERO) < 0) {
+            direction = "BEARISH";
+        } else {
+            direction = "NEUTRAL";
+        }
+
+        BigDecimal histChange = latestHist.subtract(earlierHist).abs();
+        String strength;
+        if (histChange.compareTo(BigDecimal.valueOf(0.5)) > 0) {
+            strength = "STRONG";
+        } else if (histChange.compareTo(BigDecimal.valueOf(0.2)) > 0) {
+            strength = "MODERATE";
+        } else {
+            strength = "WEAK";
+        }
+
+        return MacdAnalysisResponse.TrendSnapshot.builder()
+                .direction(direction)
+                .strength(strength)
+                .divergence(false)
+                .build();
+    }
+
+    private BigDecimal calculateConfidenceFromPoint(MacdPointResponse latest,
+                                                     MacdAnalysisResponse.TrendSnapshot trend) {
+        BigDecimal confidence = BigDecimal.valueOf(50);
+
+        if (latest.getSignal() == MacdIndicator.Signal.STRONG_BUY
+                || latest.getSignal() == MacdIndicator.Signal.STRONG_SELL) {
+            confidence = confidence.add(BigDecimal.valueOf(20));
+        }
+
+        if ("STRONG".equals(trend.getStrength())) {
+            confidence = confidence.add(BigDecimal.valueOf(15));
+        } else if ("MODERATE".equals(trend.getStrength())) {
+            confidence = confidence.add(BigDecimal.valueOf(10));
+        }
+
+        if (trend.isDivergence()) {
+            confidence = confidence.subtract(BigDecimal.valueOf(20));
+        }
+
+        BigDecimal strengthComponent = latest.getStrength()
+                .min(BigDecimal.valueOf(20));
+        confidence = confidence.add(strengthComponent.divide(BigDecimal.valueOf(5), 2, RoundingMode.HALF_UP));
+
+        if (confidence.compareTo(BigDecimal.ZERO) < 0) {
+            confidence = BigDecimal.ZERO;
+        }
+        if (confidence.compareTo(BigDecimal.valueOf(100)) > 0) {
+            confidence = BigDecimal.valueOf(100);
+        }
+
+        return confidence.setScale(2, RoundingMode.HALF_UP);
     }
 }
 

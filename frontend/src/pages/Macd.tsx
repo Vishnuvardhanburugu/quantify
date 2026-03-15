@@ -1,5 +1,6 @@
-import { useState, useDeferredValue, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useDeferredValue, useEffect, useMemo, useRef, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,15 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { CandlestickChart, type OhlcPoint, type OverlayLine } from "@/components/CandlestickChart";
-import { Activity, ArrowDownRight, ArrowUpRight, TrendingUp, TrendingDown } from "lucide-react";
+import { Activity, ArrowDownRight, ArrowUpRight, TrendingUp, TrendingDown, Briefcase, AlertTriangle, Zap } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 type MacdSignal = "BUY" | "SELL" | "HOLD" | "STRONG_BUY" | "STRONG_SELL";
 
@@ -210,6 +219,8 @@ function getCrossoverState(
 type SymbolOption = { symbol: string; companyName: string; sector: string };
 
 const Macd = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [symbol, setSymbol] = useState("");
   const [symbolInput, setSymbolInput] = useState("");
   const [symbolDropdownOpen, setSymbolDropdownOpen] = useState(false);
@@ -222,6 +233,116 @@ const Macd = () => {
   const [historyDays, setHistoryDays] = useState(90);
   const [overlayShortDays, setOverlayShortDays] = useState(10);
   const [overlayLongDays, setOverlayLongDays] = useState(15);
+
+  // Portfolio auto-sell state
+  const [selectedPortfolioSymbol, setSelectedPortfolioSymbol] = useState("");
+  const [autoSellQty, setAutoSellQty] = useState<number>(0);
+  const [autoSellEnabled, setAutoSellEnabled] = useState(false);
+  const [autoSellTriggered, setAutoSellTriggered] = useState(false);
+  const [showAutoSellConfirm, setShowAutoSellConfirm] = useState(false);
+  const [funds, setFunds] = useState<number>(0);
+  const autoSellProcessing = useRef(false);
+
+  // Load funds
+  useEffect(() => {
+    const storedFunds = localStorage.getItem("userFunds");
+    if (storedFunds) setFunds(Number(storedFunds));
+    const handleFundsChange = () => {
+      const f = localStorage.getItem("userFunds");
+      if (f) setFunds(Number(f));
+    };
+    window.addEventListener("fundsUpdated", handleFundsChange);
+    window.addEventListener("storage", handleFundsChange);
+    return () => {
+      window.removeEventListener("fundsUpdated", handleFundsChange);
+      window.removeEventListener("storage", handleFundsChange);
+    };
+  }, []);
+
+  const updateFunds = useCallback((newFunds: number) => {
+    setFunds(newFunds);
+    localStorage.setItem("userFunds", String(newFunds));
+    window.dispatchEvent(new Event("fundsUpdated"));
+  }, []);
+
+  // Fetch portfolio holdings
+  const { data: holdings } = useQuery({
+    queryKey: ["holdings"],
+    queryFn: async () => {
+      const response = await api.get("/portfolio");
+      return response.data;
+    },
+  });
+
+  const portfolioStocks = useMemo(() => {
+    if (!Array.isArray(holdings)) return [];
+    return holdings.filter((h: any) => h.quantity > 0);
+  }, [holdings]);
+
+  const selectedHolding = useMemo(() => {
+    return portfolioStocks.find((h: any) => h.symbol === selectedPortfolioSymbol);
+  }, [portfolioStocks, selectedPortfolioSymbol]);
+
+  // Auto-sell trade mutation
+  const autoSellMutation = useMutation({
+    mutationFn: async (payload: { symbol: string; companyName: string; quantity: number; price: number }) => {
+      return await api.post("/trades", {
+        symbol: payload.symbol,
+        companyName: payload.companyName,
+        type: "SELL",
+        quantity: payload.quantity,
+        price: payload.price,
+        sentiment: "NEUTRAL",
+        notes: "Auto-sold by MACD crossover signal",
+      });
+    },
+    onSuccess: (_data, variables) => {
+      const proceeds = variables.quantity * variables.price;
+      updateFunds(funds + proceeds);
+      queryClient.invalidateQueries({ queryKey: ["trades"] });
+      queryClient.invalidateQueries({ queryKey: ["tradeStats"] });
+      queryClient.invalidateQueries({ queryKey: ["portfolioSummary"] });
+      queryClient.invalidateQueries({ queryKey: ["holdings"] });
+      autoSellProcessing.current = false;
+      toast({
+        title: "\u2705 Auto-Sell Executed!",
+        description: `Sold ${variables.quantity} shares of ${variables.symbol.replace(".NS", "")} at \u20b9${variables.price.toLocaleString()}. Proceeds \u20b9${proceeds.toLocaleString()} added to your funds.`,
+      });
+    },
+    onError: (error: any) => {
+      autoSellProcessing.current = false;
+      toast({
+        variant: "destructive",
+        title: "Auto-Sell Failed",
+        description: error.response?.data?.message || "Failed to execute auto-sell trade.",
+      });
+    },
+  });
+
+  // Reset auto-sell triggered state when user changes stock or disables auto-sell
+  useEffect(() => {
+    setAutoSellTriggered(false);
+    autoSellProcessing.current = false;
+  }, [selectedPortfolioSymbol, autoSellEnabled]);
+
+  // Auto-detect if the currently analyzed symbol exists in portfolio
+  useEffect(() => {
+    if (!symbol || !portfolioStocks.length) {
+      setSelectedPortfolioSymbol("");
+      setAutoSellQty(0);
+      setAutoSellEnabled(false);
+      return;
+    }
+    const found = portfolioStocks.find((h: any) => h.symbol === symbol);
+    if (found) {
+      setSelectedPortfolioSymbol(found.symbol);
+      setAutoSellQty(0); // User decides how many to sell
+    } else {
+      setSelectedPortfolioSymbol("");
+      setAutoSellQty(0);
+      setAutoSellEnabled(false);
+    }
+  }, [symbol, portfolioStocks]);
 
   const deferredSearch = useDeferredValue(symbolInput);
   const { data: symbolOptions } = useQuery<SymbolOption[]>({
@@ -298,6 +419,43 @@ const Macd = () => {
       state: getCrossoverState(history, short, long, analysis?.current?.takeProfit),
     };
   }, [history, analysis?.current?.takeProfit, overlayShortDays, overlayLongDays]);
+
+  // Auto-sell is only enabled when user presses Enter in the qty input
+  // (no auto-enable on keystroke to avoid premature sells while typing)
+
+  // Auto-sell execution: when MACD crossover suggests SELL and auto-sell is enabled
+  // NO confirmation dialog — executes immediately
+  useEffect(() => {
+    if (
+      !autoSellEnabled ||
+      autoSellTriggered ||
+      autoSellProcessing.current ||
+      !overlayCrossover?.state ||
+      !selectedPortfolioSymbol ||
+      !selectedHolding ||
+      autoSellQty <= 0
+    ) return;
+
+    if (selectedPortfolioSymbol !== symbol) return;
+
+    const suggestion = overlayCrossover.state.suggestion;
+    if (suggestion === "SELL") {
+      const sellQty = Math.min(autoSellQty, selectedHolding.quantity);
+      const price = selectedHolding.currentPrice || selectedHolding.avgPrice;
+      autoSellProcessing.current = true;
+      setAutoSellTriggered(true);
+      toast({
+        title: "⚡ Auto-Sell Triggered!",
+        description: `MACD SELL signal detected. Selling ${sellQty} shares of ${selectedPortfolioSymbol.replace(".NS", "")} at ₹${price?.toLocaleString()}...`,
+      });
+      autoSellMutation.mutate({
+        symbol: selectedHolding.symbol,
+        companyName: selectedHolding.companyName,
+        quantity: sellQty,
+        price,
+      });
+    }
+  }, [overlayCrossover?.state?.suggestion, autoSellEnabled, autoSellTriggered, selectedPortfolioSymbol, symbol, selectedHolding, autoSellQty]);
 
   return (
     <div className="container py-8 space-y-8 animate-fade-in">
@@ -396,7 +554,7 @@ const Macd = () => {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-5">
             <div className="space-y-2">
               <Label>Short EMA</Label>
               <Input
@@ -440,6 +598,48 @@ const Macd = () => {
                 onChange={(e) => setHistoryDays(Number(e.target.value) || 30)}
               />
               <p className="text-xs text-muted-foreground">Window for the MACD chart</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Zap className="h-3.5 w-3.5 text-amber-500" />
+                Auto-Sell Qty
+                {autoSellEnabled && !autoSellTriggered && (
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                )}
+                {autoSellTriggered && (
+                  <span className="text-emerald-600 text-[10px]">✅</span>
+                )}
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                max={selectedHolding?.quantity ?? 9999}
+                value={autoSellQty || ""}
+                placeholder={selectedHolding ? "0" : "—"}
+                disabled={!selectedHolding}
+                onChange={(e) => {
+                  setAutoSellQty(Number(e.target.value) || 0);
+                  setAutoSellEnabled(false); // Reset on change, only activate on Enter
+                  setAutoSellTriggered(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && autoSellQty > 0 && selectedHolding) {
+                    setAutoSellEnabled(true);
+                    setAutoSellTriggered(false);
+                    toast({
+                      title: "⚡ Auto-Sell Armed",
+                      description: `Will auto-sell ${Math.min(autoSellQty, selectedHolding.quantity)} shares of ${selectedPortfolioSymbol.replace(".NS", "")} when MACD signals SELL.`,
+                    });
+                  }
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                {selectedHolding
+                  ? autoSellEnabled
+                    ? `⚡ Armed: ${Math.min(autoSellQty, selectedHolding.quantity)} shares will auto-sell on SELL signal`
+                    : `You hold ${selectedHolding.quantity} shares · type qty & press Enter to arm`
+                  : "Select a stock you own"}
+              </p>
             </div>
           </div>
 
@@ -501,6 +701,67 @@ const Macd = () => {
                 Last bullish cross: {overlayCrossover.state.lastBullishDate ?? "—"} · Last bearish cross: {overlayCrossover.state.lastBearishDate ?? "—"}
               </p>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Portfolio Holdings Block */}
+      {portfolioStocks.length > 0 && (
+        <Card className="glass-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-primary" />
+              Your Portfolio Holdings
+            </CardTitle>
+            <CardDescription>Stocks you currently own. Select any stock above to view its MACD analysis and enable auto-sell.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {portfolioStocks.map((h: any) => {
+                const isSelected = h.symbol === symbol;
+                const avgP = h.avgPrice ?? h.averagePrice;
+                const curP = h.currentPrice || avgP;
+                const pnl = curP && avgP ? ((curP - avgP) * h.quantity) : 0;
+                const pnlPct = avgP ? (((curP - avgP) / avgP) * 100) : 0;
+                return (
+                  <button
+                    key={h.symbol}
+                    type="button"
+                    className={`text-left rounded-lg border p-3 transition-all hover:shadow-md cursor-pointer ${
+                      isSelected
+                        ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                        : "border-border hover:border-primary/40"
+                    }`}
+                    onClick={() => {
+                      setSymbol(h.symbol);
+                      setSymbolInput(`${h.companyName} (${h.symbol})`);
+                    }}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-semibold text-sm">{h.symbol?.replace(".NS", "")}</span>
+                      <span className="text-xs text-muted-foreground">{h.quantity} shares</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate mb-2">{h.companyName}</p>
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Avg: ₹{avgP?.toLocaleString()}</p>
+                        <p className="text-xs font-medium">Current: ₹{curP?.toLocaleString()}</p>
+                      </div>
+                      <span className={`text-xs font-semibold ${
+                        pnl >= 0 ? "text-emerald-600" : "text-red-600"
+                      }`}>
+                        {pnl >= 0 ? "+" : ""}{pnlPct.toFixed(1)}%
+                      </span>
+                    </div>
+                    {isSelected && (
+                      <div className="mt-2 pt-1.5 border-t border-primary/20">
+                        <p className="text-[10px] text-primary font-medium">📊 Viewing MACD</p>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       )}

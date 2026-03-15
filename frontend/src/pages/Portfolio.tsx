@@ -35,6 +35,7 @@ const Portfolio = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [newHolding, setNewHolding] = useState({ symbol: "", companyName: "", quantity: 0, avgPrice: 0 });
+    const [funds, setFunds] = useState<number>(0);
 
     // Stock search state for Add Holding dialog
     const [stockSearch, setStockSearch] = useState("");
@@ -46,7 +47,29 @@ const Portfolio = () => {
         if (!storedUser) {
             navigate("/signin");
         }
+        const storedFunds = localStorage.getItem("userFunds");
+        if (storedFunds) setFunds(Number(storedFunds));
     }, [navigate]);
+
+    // Listen for fund changes from other pages
+    useEffect(() => {
+        const handleFundsChange = () => {
+            const storedFunds = localStorage.getItem("userFunds");
+            if (storedFunds) setFunds(Number(storedFunds));
+        };
+        window.addEventListener("fundsUpdated", handleFundsChange);
+        window.addEventListener("storage", handleFundsChange);
+        return () => {
+            window.removeEventListener("fundsUpdated", handleFundsChange);
+            window.removeEventListener("storage", handleFundsChange);
+        };
+    }, []);
+
+    const updateFunds = (newFunds: number) => {
+        setFunds(newFunds);
+        localStorage.setItem("userFunds", String(newFunds));
+        window.dispatchEvent(new Event("fundsUpdated"));
+    };
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -105,6 +128,11 @@ const Portfolio = () => {
 
     const addHoldingMutation = useMutation({
         mutationFn: async (holding: any) => {
+            // Check funds before buying
+            const total = holding.quantity * holding.avgPrice;
+            if (total > funds) {
+                throw { response: { data: { message: `Insufficient Funds! You need ₹${total.toLocaleString()} but only have ₹${funds.toLocaleString()} available. Add funds from the Dashboard.` } } };
+            }
             // Route through the trades endpoint so that both trade history
             // AND portfolio get updated together (TradeService.logTrade calls portfolioService.applyTrade)
             return await api.post("/trades", {
@@ -117,7 +145,9 @@ const Portfolio = () => {
                 notes: "Added from Portfolio",
             });
         },
-        onSuccess: () => {
+        onSuccess: (_data, variables) => {
+            const tradeTotal = variables.quantity * variables.avgPrice;
+            updateFunds(funds - tradeTotal);
             queryClient.invalidateQueries({ queryKey: ["holdings"] });
             queryClient.invalidateQueries({ queryKey: ["portfolioSummary"] });
             queryClient.invalidateQueries({ queryKey: ["trades"] });
@@ -127,13 +157,13 @@ const Portfolio = () => {
             setStockSearch("");
             toast({
                 title: "Success",
-                description: "Stock purchased and added to your portfolio.",
+                description: `Stock purchased and added to your portfolio. Funds deducted: ₹${tradeTotal.toLocaleString()}`,
             });
         },
         onError: (error: any) => {
             toast({
                 variant: "destructive",
-                title: "Error",
+                title: "Insufficient Funds",
                 description: error.response?.data?.message || "Failed to add holding.",
             });
         },

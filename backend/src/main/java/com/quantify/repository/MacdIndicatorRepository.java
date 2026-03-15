@@ -2,9 +2,11 @@ package com.quantify.repository;
 
 import com.quantify.model.MacdIndicator;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -19,10 +21,14 @@ public interface MacdIndicatorRepository extends JpaRepository<MacdIndicator, Lo
 
     Optional<MacdIndicator> findFirstBySymbolOrderByDateDesc(String symbol);
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("DELETE FROM MacdIndicator m WHERE m.symbol = :symbol")
+    void deleteBySymbol(@Param("symbol") String symbol);
+
     @Query("SELECT m FROM MacdIndicator m " +
             "WHERE m.symbol = :symbol AND m.signal IN :signals " +
             "ORDER BY m.date DESC")
     List<MacdIndicator> findRecentBySymbolAndSignals(@Param("symbol") String symbol,
                                                      @Param("signals") List<MacdIndicator.Signal> signals);
 }
-

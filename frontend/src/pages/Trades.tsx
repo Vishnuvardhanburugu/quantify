@@ -39,6 +39,7 @@ const Trades = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [sectorFilter, setSectorFilter] = useState("");
     const [isAddOpen, setIsAddOpen] = useState(false);
+    const [funds, setFunds] = useState<number>(0);
     const [newTrade, setNewTrade] = useState({
         symbol: "",
         companyName: "",
@@ -54,7 +55,30 @@ const Trades = () => {
         if (!storedUser) {
             navigate("/signin");
         }
+        // Load funds from localStorage
+        const storedFunds = localStorage.getItem("userFunds");
+        if (storedFunds) setFunds(Number(storedFunds));
     }, [navigate]);
+
+    // Listen for fund changes from other pages
+    useEffect(() => {
+        const handleFundsChange = () => {
+            const storedFunds = localStorage.getItem("userFunds");
+            if (storedFunds) setFunds(Number(storedFunds));
+        };
+        window.addEventListener("fundsUpdated", handleFundsChange);
+        window.addEventListener("storage", handleFundsChange);
+        return () => {
+            window.removeEventListener("fundsUpdated", handleFundsChange);
+            window.removeEventListener("storage", handleFundsChange);
+        };
+    }, []);
+
+    const updateFunds = (newFunds: number) => {
+        setFunds(newFunds);
+        localStorage.setItem("userFunds", String(newFunds));
+        window.dispatchEvent(new Event("fundsUpdated"));
+    };
 
     const { data: tradesResponse, isLoading } = useQuery({
         queryKey: ["trades"],
@@ -121,7 +145,13 @@ const Trades = () => {
                 notes: payload.notes || "",
             });
         },
-        onSuccess: () => {
+        onSuccess: (_data, variables) => {
+            const tradeTotal = variables.quantity * variables.price;
+            if (variables.type === "BUY") {
+                updateFunds(funds - tradeTotal);
+            } else {
+                updateFunds(funds + tradeTotal);
+            }
             queryClient.invalidateQueries({ queryKey: ["trades"] });
             queryClient.invalidateQueries({ queryKey: ["tradeStats"] });
             queryClient.invalidateQueries({ queryKey: ["portfolioSummary"] });
@@ -132,7 +162,7 @@ const Trades = () => {
             });
             toast({
                 title: "Trade logged",
-                description: "Trade logged successfully.",
+                description: `Trade logged successfully. ${variables.type === "BUY" ? "Funds deducted" : "Funds added"}: ₹${tradeTotal.toLocaleString()}`,
             });
         },
         onError: (error: any) => {
@@ -159,6 +189,18 @@ const Trades = () => {
         if (!price || price <= 0) {
             toast({ variant: "destructive", title: "Invalid price", description: "Price not available for this symbol." });
             return;
+        }
+        const tradeTotal = qty * price;
+        // Validate funds for BUY
+        if (type === "BUY") {
+            if (tradeTotal > funds) {
+                toast({
+                    variant: "destructive",
+                    title: "Insufficient Funds",
+                    description: `You need ₹${tradeTotal.toLocaleString()} but only have ₹${funds.toLocaleString()} available. Please add funds from the Dashboard first.`,
+                });
+                return;
+            }
         }
         // Validate sell quantity against holdings
         if (type === "SELL") {
@@ -281,15 +323,28 @@ const Trades = () => {
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-                            <Button onClick={() => logTradeMutation.mutate({
-                                symbol: newTrade.symbol,
-                                companyName: newTrade.companyName,
-                                type: newTrade.type,
-                                quantity: newTrade.quantity,
-                                price: newTrade.price,
-                                sentiment: newTrade.sentiment,
-                                notes: newTrade.notes,
-                            })} disabled={logTradeMutation.isPending}>
+                            <Button onClick={() => {
+                                if (newTrade.type === "BUY") {
+                                    const total = newTrade.quantity * newTrade.price;
+                                    if (total > funds) {
+                                        toast({
+                                            variant: "destructive",
+                                            title: "Insufficient Funds",
+                                            description: `You need ₹${total.toLocaleString()} but only have ₹${funds.toLocaleString()} available. Please add funds from the Dashboard first.`,
+                                        });
+                                        return;
+                                    }
+                                }
+                                logTradeMutation.mutate({
+                                    symbol: newTrade.symbol,
+                                    companyName: newTrade.companyName,
+                                    type: newTrade.type,
+                                    quantity: newTrade.quantity,
+                                    price: newTrade.price,
+                                    sentiment: newTrade.sentiment,
+                                    notes: newTrade.notes,
+                                });
+                            }} disabled={logTradeMutation.isPending}>
                                 {logTradeMutation.isPending ? "Logging..." : "Save Trade"}
                             </Button>
                         </DialogFooter>

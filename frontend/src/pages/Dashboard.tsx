@@ -12,18 +12,32 @@ import {
     ArrowDownRight,
     Activity,
     Plus,
-    Brain
+    Brain,
+    IndianRupee
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter
+} from "@/components/ui/dialog";
 
 const Dashboard = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
     const [user, setUser] = useState<any>(null);
+    const [funds, setFunds] = useState<number>(0);
+    const [addFundAmount, setAddFundAmount] = useState<string>("");
+    const [isAddFundsOpen, setIsAddFundsOpen] = useState(false);
 
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
@@ -32,7 +46,41 @@ const Dashboard = () => {
             return;
         }
         setUser(JSON.parse(storedUser));
+        // Load funds from localStorage
+        const storedFunds = localStorage.getItem("userFunds");
+        if (storedFunds) {
+            setFunds(Number(storedFunds));
+        }
     }, [navigate]);
+
+    // Listen for fund changes from other pages (e.g., Trades, MACD)
+    useEffect(() => {
+        const handleStorageChange = () => {
+            const storedFunds = localStorage.getItem("userFunds");
+            if (storedFunds) setFunds(Number(storedFunds));
+        };
+        window.addEventListener("fundsUpdated", handleStorageChange);
+        window.addEventListener("storage", handleStorageChange);
+        return () => {
+            window.removeEventListener("fundsUpdated", handleStorageChange);
+            window.removeEventListener("storage", handleStorageChange);
+        };
+    }, []);
+
+    const handleAddFunds = () => {
+        const amount = Number(addFundAmount);
+        if (!amount || amount <= 0) {
+            toast({ variant: "destructive", title: "Invalid amount", description: "Please enter a valid amount greater than 0." });
+            return;
+        }
+        const newFunds = funds + amount;
+        setFunds(newFunds);
+        localStorage.setItem("userFunds", String(newFunds));
+        window.dispatchEvent(new Event("fundsUpdated"));
+        setAddFundAmount("");
+        setIsAddFundsOpen(false);
+        toast({ title: "Funds Added", description: `₹${amount.toLocaleString()} has been added to your wallet. New balance: ₹${newFunds.toLocaleString()}` });
+    };
 
     const { data: marketData, isLoading: marketLoading } = useQuery({
         queryKey: ["marketData"],
@@ -130,16 +178,56 @@ const Dashboard = () => {
                         </p>
                     </CardContent>
                 </Card>
-                <Card className="glass-card">
+                <Card className="glass-card border-primary/20">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Available Cash</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">Available Funds</CardTitle>
+                        <Wallet className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">₹{user.balance?.toLocaleString() || "0"}</div>
+                        <div className="text-2xl font-bold text-primary">₹{funds.toLocaleString()}</div>
                         <p className="text-xs text-muted-foreground mt-1">
                             Ready for new investments
                         </p>
+                        <Dialog open={isAddFundsOpen} onOpenChange={setIsAddFundsOpen}>
+                            <DialogTrigger asChild>
+                                <Button size="sm" className="mt-3 w-full" variant="outline">
+                                    <IndianRupee className="mr-1.5 h-3.5 w-3.5" /> Add Funds
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-sm">
+                                <DialogHeader>
+                                    <DialogTitle>Add Funds to Wallet</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <div className="rounded-md bg-accent/50 p-3 text-sm flex justify-between">
+                                        <span className="text-muted-foreground">Current Balance</span>
+                                        <span className="font-semibold">₹{funds.toLocaleString()}</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="addFundAmount">Amount (₹)</Label>
+                                        <Input
+                                            id="addFundAmount"
+                                            type="number"
+                                            min={1}
+                                            placeholder="Enter amount to add"
+                                            value={addFundAmount}
+                                            onChange={(e) => setAddFundAmount(e.target.value)}
+                                            onKeyDown={(e) => e.key === "Enter" && handleAddFunds()}
+                                        />
+                                    </div>
+                                    {addFundAmount && Number(addFundAmount) > 0 && (
+                                        <div className="rounded-md border border-border p-3 text-sm flex justify-between">
+                                            <span className="text-muted-foreground">New Balance</span>
+                                            <span className="font-semibold text-primary">₹{(funds + Number(addFundAmount)).toLocaleString()}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <DialogFooter>
+                                    <Button variant="outline" onClick={() => setIsAddFundsOpen(false)}>Cancel</Button>
+                                    <Button onClick={handleAddFunds}>Add Funds</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </CardContent>
                 </Card>
             </div>
