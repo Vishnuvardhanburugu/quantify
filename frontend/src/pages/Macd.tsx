@@ -2,6 +2,7 @@ import { useState, useDeferredValue, useEffect, useMemo, useRef, useCallback } f
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
+import { getFunds, setFunds as saveFunds, onFundsChange } from "@/lib/funds";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -245,24 +246,13 @@ const Macd = () => {
 
   // Load funds
   useEffect(() => {
-    const storedFunds = localStorage.getItem("userFunds");
-    if (storedFunds) setFunds(Number(storedFunds));
-    const handleFundsChange = () => {
-      const f = localStorage.getItem("userFunds");
-      if (f) setFunds(Number(f));
-    };
-    window.addEventListener("fundsUpdated", handleFundsChange);
-    window.addEventListener("storage", handleFundsChange);
-    return () => {
-      window.removeEventListener("fundsUpdated", handleFundsChange);
-      window.removeEventListener("storage", handleFundsChange);
-    };
+    setFunds(getFunds());
+    return onFundsChange(() => setFunds(getFunds()));
   }, []);
 
   const updateFunds = useCallback((newFunds: number) => {
     setFunds(newFunds);
-    localStorage.setItem("userFunds", String(newFunds));
-    window.dispatchEvent(new Event("fundsUpdated"));
+    saveFunds(newFunds);
   }, []);
 
   // Fetch portfolio holdings

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
+import { getFunds, setFunds as saveFunds, onFundsChange } from "@/lib/funds";
 import {
     Plus,
     Search,
@@ -55,29 +56,17 @@ const Trades = () => {
         if (!storedUser) {
             navigate("/signin");
         }
-        // Load funds from localStorage
-        const storedFunds = localStorage.getItem("userFunds");
-        if (storedFunds) setFunds(Number(storedFunds));
+        setFunds(getFunds());
     }, [navigate]);
 
     // Listen for fund changes from other pages
     useEffect(() => {
-        const handleFundsChange = () => {
-            const storedFunds = localStorage.getItem("userFunds");
-            if (storedFunds) setFunds(Number(storedFunds));
-        };
-        window.addEventListener("fundsUpdated", handleFundsChange);
-        window.addEventListener("storage", handleFundsChange);
-        return () => {
-            window.removeEventListener("fundsUpdated", handleFundsChange);
-            window.removeEventListener("storage", handleFundsChange);
-        };
+        return onFundsChange(() => setFunds(getFunds()));
     }, []);
 
     const updateFunds = (newFunds: number) => {
         setFunds(newFunds);
-        localStorage.setItem("userFunds", String(newFunds));
-        window.dispatchEvent(new Event("fundsUpdated"));
+        saveFunds(newFunds);
     };
 
     const { data: tradesResponse, isLoading } = useQuery({

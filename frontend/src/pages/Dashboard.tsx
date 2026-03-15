@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
+import { getFunds, setFunds as saveFunds, onFundsChange } from "@/lib/funds";
 import {
     BarChart3,
     TrendingUp,
@@ -46,25 +47,12 @@ const Dashboard = () => {
             return;
         }
         setUser(JSON.parse(storedUser));
-        // Load funds from localStorage
-        const storedFunds = localStorage.getItem("userFunds");
-        if (storedFunds) {
-            setFunds(Number(storedFunds));
-        }
+        setFunds(getFunds());
     }, [navigate]);
 
-    // Listen for fund changes from other pages (e.g., Trades, MACD)
+    // Listen for fund changes from other pages
     useEffect(() => {
-        const handleStorageChange = () => {
-            const storedFunds = localStorage.getItem("userFunds");
-            if (storedFunds) setFunds(Number(storedFunds));
-        };
-        window.addEventListener("fundsUpdated", handleStorageChange);
-        window.addEventListener("storage", handleStorageChange);
-        return () => {
-            window.removeEventListener("fundsUpdated", handleStorageChange);
-            window.removeEventListener("storage", handleStorageChange);
-        };
+        return onFundsChange(() => setFunds(getFunds()));
     }, []);
 
     const handleAddFunds = () => {
@@ -75,8 +63,7 @@ const Dashboard = () => {
         }
         const newFunds = funds + amount;
         setFunds(newFunds);
-        localStorage.setItem("userFunds", String(newFunds));
-        window.dispatchEvent(new Event("fundsUpdated"));
+        saveFunds(newFunds);
         setAddFundAmount("");
         setIsAddFundsOpen(false);
         toast({ title: "Funds Added", description: `₹${amount.toLocaleString()} has been added to your wallet. New balance: ₹${newFunds.toLocaleString()}` });
