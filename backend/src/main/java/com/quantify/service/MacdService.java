@@ -285,6 +285,7 @@ public class MacdService {
 
             String response = client.get()
                     .uri(url)
+                    .header("User-Agent", "Mozilla/5.0")
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
