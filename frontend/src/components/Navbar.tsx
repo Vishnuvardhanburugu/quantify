@@ -1,7 +1,9 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, LogOut, User as UserIcon } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import api from "@/lib/api";
 import logo from "@/assets/logo.png";
 import {
   DropdownMenu,
@@ -19,6 +21,7 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -26,6 +29,32 @@ const Navbar = () => {
       setUser(JSON.parse(storedUser));
     }
   }, [location]);
+
+  // Wake up backend on app load (helps with Render cold starts)
+  useEffect(() => {
+    api.get("/market/symbols", { params: { query: "HDFC" } }).catch(() => {});
+  }, []);
+
+  // Prefetch data when user hovers a nav link
+  const prefetchMap: Record<string, () => void> = {
+    "/portfolio": () => {
+      queryClient.prefetchQuery({ queryKey: ["holdings"], queryFn: () => api.get("/portfolio").then(r => r.data) });
+    },
+    "/market": () => {
+      queryClient.prefetchQuery({ queryKey: ["marketData"], queryFn: () => api.get("/market").then(r => r.data) });
+    },
+    "/trades": () => {
+      queryClient.prefetchQuery({ queryKey: ["trades"], queryFn: () => api.get("/trades").then(r => r.data) });
+    },
+    "/dashboard": () => {
+      queryClient.prefetchQuery({ queryKey: ["marketData"], queryFn: () => api.get("/market").then(r => r.data) });
+    },
+  };
+
+  const handlePrefetch = useCallback((to: string) => {
+    const fn = prefetchMap[to];
+    if (fn) fn();
+  }, [queryClient]);
 
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
@@ -80,6 +109,7 @@ const Navbar = () => {
             <Link
               key={link.to}
               to={link.to}
+              onMouseEnter={() => handlePrefetch(link.to)}
               className={`text-sm font-medium transition-colors hover:text-primary ${location.pathname === link.to
                 ? "text-primary"
                 : "text-muted-foreground"

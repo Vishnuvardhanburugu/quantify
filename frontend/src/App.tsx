@@ -18,7 +18,16 @@ import Macd from "./pages/Macd";
 import Logo from "./pages/Logo";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,    // 5 min — don't re-fetch if data is fresh
+      gcTime: 10 * 60 * 1000,      // 10 min — keep unused data in cache
+      retry: 2,                     // retry failed requests (helps with Render cold starts)
+      refetchOnWindowFocus: false,  // don't refetch every time user tabs back
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
