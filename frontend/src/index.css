@@ -172,6 +172,317 @@
   }
 }
 
+/* ═══════════════════════════════════════════════
+   Chat Assistant — Premium Styles & Animations
+   ═══════════════════════════════════════════════ */
+
+/* Animated mesh gradient background for chat container */
+.chat-bg-mesh {
+  position: relative;
+  overflow: hidden;
+}
+
+.chat-bg-mesh::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 0%, hsl(var(--primary) / 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, hsl(213 80% 60% / 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, hsl(280 60% 60% / 0.03) 0%, transparent 60%);
+  animation: meshShift 12s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dark .chat-bg-mesh::before {
+  background:
+    radial-gradient(ellipse at 20% 0%, hsl(var(--primary) / 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, hsl(213 80% 60% / 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, hsl(280 60% 60% / 0.06) 0%, transparent 60%);
+}
+
+@keyframes meshShift {
+  0% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0.8; transform: scale(1); }
+}
+
+/* Floating orb decorations */
+.chat-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.chat-orb-1 {
+  width: 200px;
+  height: 200px;
+  background: hsl(var(--primary) / 0.12);
+  top: -60px;
+  left: -40px;
+  animation: orbFloat1 8s ease-in-out infinite;
+}
+
+.chat-orb-2 {
+  width: 150px;
+  height: 150px;
+  background: hsl(280 60% 60% / 0.08);
+  bottom: -30px;
+  right: -30px;
+  animation: orbFloat2 10s ease-in-out infinite;
+}
+
+.chat-orb-3 {
+  width: 100px;
+  height: 100px;
+  background: hsl(160 60% 50% / 0.07);
+  top: 40%;
+  right: 10%;
+  animation: orbFloat3 12s ease-in-out infinite;
+}
+
+.dark .chat-orb-1 { background: hsl(var(--primary) / 0.2); }
+.dark .chat-orb-2 { background: hsl(280 60% 60% / 0.15); }
+.dark .chat-orb-3 { background: hsl(160 60% 50% / 0.1); }
+
+@keyframes orbFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, 20px) scale(1.1); }
+  66% { transform: translate(-15px, 10px) scale(0.95); }
+}
+
+@keyframes orbFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-25px, -30px) scale(1.15); }
+}
+
+@keyframes orbFloat3 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  50% { transform: translate(20px, -20px) scale(1.2); opacity: 1; }
+}
+
+/* Glowing animated border for the chat card */
+.chat-card-glow {
+  position: relative;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px hsl(var(--border) / 0.1),
+    0 4px 24px -4px hsl(var(--primary) / 0.08),
+    0 12px 48px -8px hsl(var(--primary) / 0.04);
+  transition: box-shadow 0.4s ease, border-color 0.3s ease;
+}
+
+.chat-card-glow:hover {
+  border-color: hsl(var(--primary) / 0.3);
+  box-shadow:
+    0 0 0 1px hsl(var(--primary) / 0.15),
+    0 4px 24px -4px hsl(var(--primary) / 0.12),
+    0 12px 48px -8px hsl(var(--primary) / 0.08);
+}
+
+/* Animated gradient top-border accent */
+.chat-card-glow::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--primary) / 0.6),
+    hsl(280 60% 60% / 0.4),
+    hsl(var(--primary) / 0.6),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: borderGlow 4s linear infinite;
+  z-index: 10;
+}
+
+@keyframes borderGlow {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* AI Avatar pulse ring */
+.ai-avatar-ring {
+  position: relative;
+}
+
+.ai-avatar-ring::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 2px solid hsl(var(--primary) / 0.3);
+  animation: avatarPulse 2s ease-in-out infinite;
+}
+
+@keyframes avatarPulse {
+  0%, 100% { opacity: 0; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+/* Message bubble entrance animations */
+.msg-enter-right {
+  animation: msgSlideRight 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.msg-enter-left {
+  animation: msgSlideLeft 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes msgSlideRight {
+  from { opacity: 0; transform: translateX(20px) scale(0.95); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes msgSlideLeft {
+  from { opacity: 0; transform: translateX(-20px) scale(0.95); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* User bubble gradient */
+.user-bubble {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(213 70% 45%));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 2px 12px -2px hsl(var(--primary) / 0.35);
+}
+
+/* AI bubble glass effect */
+.ai-bubble {
+  background: hsl(var(--secondary) / 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid hsl(var(--border) / 0.5);
+  box-shadow: 0 1px 8px -2px hsl(var(--primary) / 0.06);
+}
+
+/* Prompt card hover effect */
+.prompt-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.prompt-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary) / 0.05),
+    hsl(280 60% 60% / 0.03),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.prompt-card:hover::before {
+  opacity: 1;
+}
+
+.prompt-card:hover {
+  border-color: hsl(var(--primary) / 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -8px hsl(var(--primary) / 0.15);
+}
+
+/* Shimmer effect on prompt card icons */
+.prompt-icon-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.prompt-icon-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    hsl(var(--primary) / 0.15) 50%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+
+.prompt-card:hover .prompt-icon-shimmer::after {
+  transform: translateX(100%);
+}
+
+/* Typing dots animation — more organic bouncing */
+.typing-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: hsl(var(--primary) / 0.7);
+  animation: typingBounce 1.4s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.16s; }
+.typing-dot:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-8px); opacity: 1; }
+}
+
+/* Send button glow on hover */
+.send-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.send-btn:not(:disabled):hover {
+  box-shadow: 0 0 20px -4px hsl(var(--primary) / 0.5);
+  transform: scale(1.05);
+}
+
+.send-btn:not(:disabled):active {
+  transform: scale(0.95);
+}
+
+/* Welcome hero glow */
+.welcome-glow {
+  position: relative;
+}
+
+.welcome-glow::before {
+  content: "";
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(
+    circle,
+    hsl(var(--primary) / 0.15) 0%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  animation: welcomePulse 3s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes welcomePulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+/* Input focus glow */
+.chat-input:focus-within {
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.15), 0 0 16px -4px hsl(var(--primary) / 0.1);
+}
+
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
@@ -190,4 +501,3 @@ html {
 button, a, input, select, textarea {
   transition: all 0.2s ease;
 }
-

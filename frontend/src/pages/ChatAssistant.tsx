@@ -15,6 +15,7 @@ import {
     TrendingUp,
     PieChart,
     HelpCircle,
+    ArrowUpRight,
 } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -178,25 +179,33 @@ const ChatAssistant = () => {
     const hasMessages = displayMessages.length > 0;
 
     return (
-        <div className="container py-8 max-w-4xl h-[calc(100vh-8rem)] flex flex-col gap-4 animate-fade-in">
+        <div className="container py-8 max-w-4xl h-[calc(100vh-8rem)] flex flex-col gap-5 animate-fade-in relative z-10">
+            {/* Background Animations */}
+            <div className="absolute inset-0 z-[-1] pointer-events-none overflow-hidden rounded-3xl">
+                <div className="chat-bg-mesh absolute inset-0" />
+                <div className="chat-orb chat-orb-1" />
+                <div className="chat-orb chat-orb-2" />
+                <div className="chat-orb chat-orb-3" />
+            </div>
+
             {/* Header */}
-            <div className="flex items-center justify-between shrink-0">
+            <div className="flex items-center justify-between shrink-0 px-2">
                 <div className="flex items-center gap-3">
                     <div className="relative">
-                        <div className="bg-gradient-to-br from-primary/20 to-primary/5 p-2.5 rounded-xl border border-primary/20">
-                            <Brain className="h-5 w-5 text-primary" />
+                        <div className="bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-2.5 rounded-xl border border-primary/20 shadow-sm shadow-primary/10">
+                            <Brain className="h-6 w-6 text-primary" />
                         </div>
-                        <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 bg-green-500 rounded-full border-2 border-background" />
+                        <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-green-500 rounded-full border-2 border-background animate-pulse" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
+                        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
                             Quantify AI
-                            <Badge variant="secondary" className="text-[10px] font-medium px-1.5 py-0">
+                            <Badge variant="secondary" className="text-[10px] font-medium px-1.5 py-0 border-primary/20 bg-primary/10 text-primary">
                                 <Sparkles className="h-2.5 w-2.5 mr-0.5" /> Beta
                             </Badge>
                         </h1>
-                        <p className="text-xs text-muted-foreground">
-                            Your personal trading intelligence
+                        <p className="text-xs text-muted-foreground font-medium">
+                            Your intelligent trading companion
                         </p>
                     </div>
                 </div>
@@ -204,134 +213,146 @@ const ChatAssistant = () => {
                     variant="outline"
                     size="sm"
                     onClick={handleNewChat}
-                    className="gap-1.5 text-xs"
+                    className="gap-1.5 text-xs bg-background/50 backdrop-blur-sm border-primary/20 hover:bg-primary/10 hover:text-primary transition-all duration-300"
                 >
-                    <MessageSquarePlus className="h-3.5 w-3.5" /> New Chat
+                    <MessageSquarePlus className="h-3.5 w-3.5" /> New Session
                 </Button>
             </div>
 
-            {/* Chat Area */}
-            <Card className="flex-1 flex flex-col overflow-hidden glass-card">
-                <CardContent className="flex-1 overflow-hidden p-0">
+            {/* Chat Area - Premium Card */}
+            <Card className="flex-1 flex flex-col chat-card-glow">
+                <CardContent className="flex-1 overflow-hidden p-0 relative bg-background/40 backdrop-blur-xl">
                     <ScrollArea className="h-full">
-                        <div className="p-5 space-y-5 min-h-full">
+                        <div className="p-6 space-y-6 min-h-full flex flex-col justify-end">
                             {historyLoading ? (
-                                <div className="flex justify-center py-16">
-                                    <div className="flex flex-col items-center gap-3">
-                                        <Loader2 className="h-6 w-6 animate-spin text-primary/60" />
-                                        <span className="text-xs text-muted-foreground">Loading conversation...</span>
+                                <div className="flex flex-col items-center justify-center py-20 gap-4 h-full m-auto">
+                                    <div className="relative">
+                                        <div className="h-12 w-12 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <Brain className="h-5 w-5 text-primary/60" />
+                                        </div>
                                     </div>
+                                    <span className="text-sm font-medium text-muted-foreground animate-pulse">Syncing neural pathways...</span>
                                 </div>
                             ) : !hasMessages ? (
                                 /* Empty State — Welcome Screen */
-                                <div className="flex flex-col items-center justify-center py-12 text-center space-y-8">
+                                <div className="flex flex-col items-center justify-center py-12 text-center space-y-10 m-auto mt-8 w-full">
                                     {/* AI Avatar */}
-                                    <div className="relative">
-                                        <div className="h-20 w-20 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent rounded-2xl flex items-center justify-center border border-primary/20 shadow-lg shadow-primary/5">
-                                            <Bot className="h-10 w-10 text-primary" />
+                                    <div className="welcome-glow relative">
+                                        <div className="h-24 w-24 bg-gradient-to-br from-primary/30 via-primary/10 to-background rounded-[2rem] flex items-center justify-center border border-primary/30 shadow-2xl shadow-primary/20 rotate-3 transition-transform duration-500 hover:rotate-0 ai-avatar-ring">
+                                            <Bot className="h-12 w-12 text-primary drop-shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
                                         </div>
-                                        <div className="absolute -top-1 -right-1 flex items-center justify-center">
-                                            <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+                                        <div className="absolute -top-2 -right-2 flex items-center justify-center bg-background rounded-full p-1 shadow-md">
+                                            <Sparkles className="h-5 w-5 text-primary animate-bounce" />
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2 max-w-md">
-                                        <h3 className="text-lg font-semibold">Hey {user.name?.split(' ')[0]}! 👋</h3>
-                                        <p className="text-sm text-muted-foreground leading-relaxed">
-                                            I'm your AI trading assistant. I can analyze your portfolio, provide market insights,
-                                            and help you make smarter trading decisions.
+                                    <div className="space-y-3 max-w-lg">
+                                        <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+                                            Welcome back, {user.name?.split(' ')[0]}
+                                        </h3>
+                                        <p className="text-[15px] text-muted-foreground leading-relaxed font-medium">
+                                            I'm analyzing real-time market data across NSE/BSE. Ask me anything about your portfolio performance, technical indicators, or broader market sentiment.
                                         </p>
                                     </div>
 
                                     {/* Quick Prompt Cards */}
-                                    <div className="grid grid-cols-2 gap-2.5 w-full max-w-lg">
-                                        {QUICK_PROMPTS.map((item) => (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full max-w-2xl px-4">
+                                        {QUICK_PROMPTS.map((item, idx) => (
                                             <button
                                                 key={item.prompt}
                                                 onClick={() => handleSend(item.prompt)}
-                                                className="group flex items-start gap-3 p-3.5 rounded-xl border border-border/60 bg-background/40 hover:bg-accent/50 hover:border-primary/30 transition-all duration-200 text-left"
+                                                className="prompt-card group flex items-start gap-4 p-4 rounded-2xl border border-border/60 bg-background/50 text-left"
+                                                style={{ animationDelay: `${idx * 100}ms`, animation: 'fadeIn 0.5s ease-out forwards', opacity: 0 }}
                                             >
-                                                <div className="shrink-0 mt-0.5 h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                                                    <item.icon className="h-4 w-4 text-primary" />
+                                                <div className="prompt-icon-shimmer shrink-0 h-10 w-10 rounded-xl bg-gradient-to-br from-primary/10 to-transparent flex items-center justify-center border border-primary/10 group-hover:bg-primary/20 transition-colors duration-300">
+                                                    <item.icon className="h-5 w-5 text-primary group-hover:scale-110 transition-transform duration-300" />
                                                 </div>
-                                                <div className="min-w-0">
-                                                    <div className="text-xs font-medium text-foreground">{item.label}</div>
-                                                    <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{item.prompt}</div>
+                                                <div className="min-w-0 flex-1 pt-0.5">
+                                                    <div className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{item.label}</div>
+                                                    <div className="text-xs text-muted-foreground mt-1 line-clamp-1">{item.prompt}</div>
                                                 </div>
+                                                <ArrowUpRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary/70 transition-colors shrink-0 mt-1 opacity-0 group-hover:opacity-100 transform translate-y-1 group-hover:translate-y-0" />
                                             </button>
                                         ))}
                                     </div>
                                 </div>
                             ) : (
                                 /* Message List */
-                                displayMessages.map((msg: Message, i: number) => (
-                                    <div
-                                        key={i}
-                                        className={`flex items-end gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"} animate-fade-in`}
-                                    >
-                                        {/* Avatar */}
-                                        <div className={`shrink-0 h-7 w-7 rounded-lg flex items-center justify-center text-xs font-bold ${
-                                            msg.role === "assistant"
-                                                ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-sm shadow-primary/20"
-                                                : "bg-secondary text-secondary-foreground"
-                                        }`}>
-                                            {msg.role === "assistant"
-                                                ? <Bot className="h-3.5 w-3.5" />
-                                                : <UserIcon className="h-3.5 w-3.5" />
-                                            }
-                                        </div>
-
-                                        {/* Bubble */}
-                                        <div className={`flex flex-col gap-1 max-w-[78%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                                            <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-                                                msg.role === "user"
-                                                    ? "bg-primary text-primary-foreground rounded-br-md"
-                                                    : "bg-secondary/80 text-foreground rounded-bl-md border border-border/40"
+                                <div className="space-y-6">
+                                    {displayMessages.map((msg: Message, i: number) => (
+                                        <div
+                                            key={i}
+                                            className={`flex items-end gap-3 w-full ${msg.role === "user" ? "flex-row-reverse msg-enter-right" : "flex-row msg-enter-left"}`}
+                                        >
+                                            {/* Avatar */}
+                                            <div className={`shrink-0 h-8 w-8 rounded-xl flex items-center justify-center text-[10px] font-bold z-10 ${
+                                                msg.role === "assistant"
+                                                    ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/20 relative"
+                                                    : "bg-secondary border border-border/50 text-secondary-foreground shadow-sm"
                                             }`}>
-                                                {msg.content}
+                                                {msg.role === "assistant" ? (
+                                                    <>
+                                                        <Bot className="h-4 w-4 drop-shadow-sm" />
+                                                        <div className="absolute inset-0 bg-primary rounded-xl animate-pulse opacity-0" />
+                                                    </>
+                                                ) : (
+                                                    <UserIcon className="h-4 w-4" />
+                                                )}
                                             </div>
-                                            {msg.createdAt && (
-                                                <span className="text-[10px] text-muted-foreground/60 px-1">
-                                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))
-                            )}
 
-                            {/* Typing Indicator */}
-                            {sendMessageMutation.isPending && (
-                                <div className="flex items-end gap-2.5 animate-fade-in">
-                                    <div className="shrink-0 h-7 w-7 rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow-sm shadow-primary/20">
-                                        <Bot className="h-3.5 w-3.5" />
-                                    </div>
-                                    <div className="bg-secondary/80 border border-border/40 rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-2.5">
-                                        <div className="flex gap-1">
-                                            <div className="h-1.5 w-1.5 bg-primary/60 rounded-full animate-bounce" />
-                                            <div className="h-1.5 w-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:0.15s]" />
-                                            <div className="h-1.5 w-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:0.3s]" />
+                                            {/* Bubble */}
+                                            <div className={`flex flex-col gap-1.5 max-w-[85%] sm:max-w-[75%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                                                <div className={`px-5 py-3.5 text-[15px] leading-relaxed whitespace-pre-wrap relative overflow-hidden ${
+                                                    msg.role === "user"
+                                                        ? "user-bubble rounded-2xl rounded-br-sm"
+                                                        : "ai-bubble rounded-2xl rounded-bl-sm"
+                                                }`}>
+                                                    {msg.content}
+                                                </div>
+                                                {msg.createdAt && (
+                                                    <span className="text-[10px] font-medium text-muted-foreground/70 px-1 opacity-0 animate-fade-in [animation-delay:0.3s]">
+                                                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                        <span className="text-xs text-muted-foreground">Analyzing...</span>
-                                    </div>
+                                    ))}
+
+                                    {/* Typing Indicator */}
+                                    {sendMessageMutation.isPending && (
+                                        <div className="flex items-end gap-3 msg-enter-left">
+                                            <div className="shrink-0 h-8 w-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow-md shadow-primary/20 ai-avatar-ring">
+                                                <Bot className="h-4 w-4" />
+                                            </div>
+                                            <div className="ai-bubble rounded-2xl rounded-bl-sm px-5 py-4 flex items-center gap-3">
+                                                <div className="flex gap-1.5 items-center">
+                                                    <div className="typing-dot" />
+                                                    <div className="typing-dot" />
+                                                    <div className="typing-dot" />
+                                                </div>
+                                                <span className="text-xs font-medium text-primary/70 ml-1">Computing outcome...</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                            <div ref={scrollRef} />
+                            <div ref={scrollRef} className="h-px w-full" />
                         </div>
                     </ScrollArea>
                 </CardContent>
 
                 {/* Input Area */}
-                <CardFooter className="p-3 border-t border-border/60 bg-background/40 backdrop-blur-sm">
+                <CardFooter className="p-4 border-t border-border/40 bg-background/60 backdrop-blur-xl relative z-20">
                     <form
-                        className="flex w-full items-center gap-2"
+                        className="flex w-full items-end gap-3 chat-input transition-all duration-300 rounded-2xl bg-secondary/30 border border-border/50 p-1.5 focus-within:bg-background/80"
                         onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                     >
-                        <div className="relative flex-1">
+                        <div className="relative flex-1 flex items-center">
                             <Input
                                 ref={inputRef}
-                                placeholder={sendMessageMutation.isPending ? "Waiting for response..." : "Ask about your portfolio, stocks, or strategy..."}
-                                className="pr-4 bg-secondary/40 border-border/60 focus-visible:ring-primary/30 focus-visible:border-primary/40 transition-colors"
+                                placeholder={sendMessageMutation.isPending ? "Quantify is analyzing..." : "Ask about a stock, your portfolio, or market trends..."}
+                                className="border-0 bg-transparent shadow-none focus-visible:ring-0 text-[15px] px-4 py-6 placeholder:text-muted-foreground/60"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 disabled={sendMessageMutation.isPending}
@@ -342,12 +363,12 @@ const ChatAssistant = () => {
                             size="icon"
                             disabled={!input.trim() || sendMessageMutation.isPending}
                             type="submit"
-                            className="shrink-0 bg-primary hover:bg-primary/90 shadow-sm shadow-primary/20 transition-all duration-200 disabled:opacity-40"
+                            className="shrink-0 h-11 w-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground send-btn m-1 disabled:opacity-30 disabled:hover:scale-100 disabled:hover:box-shadow-none"
                         >
                             {sendMessageMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <Loader2 className="h-5 w-5 animate-spin" />
                             ) : (
-                                <Send className="h-4 w-4" />
+                                <Send className="h-5 w-5 ml-0.5" />
                             )}
                         </Button>
                     </form>
