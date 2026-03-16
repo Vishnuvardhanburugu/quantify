@@ -179,32 +179,32 @@ const ChatAssistant = () => {
     const hasMessages = displayMessages.length > 0;
 
     return (
-        <div className="container py-8 max-w-4xl h-[calc(100vh-8rem)] flex flex-col gap-5 animate-fade-in relative z-10">
+        <div className="h-[calc(100vh-4rem)] w-full flex flex-col animate-fade-in relative z-10 overflow-hidden bg-background">
             {/* Background Animations */}
-            <div className="absolute inset-0 z-[-1] pointer-events-none overflow-hidden rounded-3xl">
-                <div className="chat-bg-mesh absolute inset-0" />
-                <div className="chat-orb chat-orb-1" />
-                <div className="chat-orb chat-orb-2" />
-                <div className="chat-orb chat-orb-3" />
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                <div className="chat-bg-mesh absolute inset-0 opacity-60" />
+                <div className="chat-orb chat-orb-1 scale-150" />
+                <div className="chat-orb chat-orb-2 scale-150" />
+                <div className="chat-orb chat-orb-3 scale-150" />
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between shrink-0 px-2">
-                <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between shrink-0 px-6 py-4 border-b border-border/40 bg-background/80 backdrop-blur-xl relative z-20">
+                <div className="flex items-center gap-4">
                     <div className="relative">
-                        <div className="bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-2.5 rounded-xl border border-primary/20 shadow-sm shadow-primary/10">
-                            <Brain className="h-6 w-6 text-primary" />
+                        <div className="bg-gradient-to-br from-primary/30 via-primary/10 to-transparent p-3 rounded-2xl border border-primary/30 shadow-sm shadow-primary/20">
+                            <Brain className="h-7 w-7 text-primary" />
                         </div>
-                        <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-green-500 rounded-full border-2 border-background animate-pulse" />
+                        <div className="absolute -bottom-1 -right-1 h-3.5 w-3.5 bg-green-500 rounded-full border-[3px] border-background animate-pulse" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-3">
                             Quantify AI
-                            <Badge variant="secondary" className="text-[10px] font-medium px-1.5 py-0 border-primary/20 bg-primary/10 text-primary">
-                                <Sparkles className="h-2.5 w-2.5 mr-0.5" /> Beta
+                            <Badge variant="secondary" className="text-xs font-semibold px-2 py-0.5 border-primary/30 bg-primary/10 text-primary uppercase tracking-wider hidden sm:flex">
+                                <Sparkles className="h-3 w-3 mr-1" /> Beta
                             </Badge>
                         </h1>
-                        <p className="text-xs text-muted-foreground font-medium">
+                        <p className="text-sm text-muted-foreground font-medium mt-0.5">
                             Your intelligent trading companion
                         </p>
                     </div>
@@ -213,27 +213,28 @@ const ChatAssistant = () => {
                     variant="outline"
                     size="sm"
                     onClick={handleNewChat}
-                    className="gap-1.5 text-xs bg-background/50 backdrop-blur-sm border-primary/20 hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                    className="gap-2 text-sm px-4 h-10 bg-background/50 backdrop-blur-sm border-primary/20 hover:bg-primary/10 hover:text-primary transition-all duration-300 shadow-sm"
                 >
-                    <MessageSquarePlus className="h-3.5 w-3.5" /> New Session
+                    <MessageSquarePlus className="h-4 w-4" /> <span className="hidden sm:inline">New Session</span>
                 </Button>
             </div>
 
-            {/* Chat Area - Premium Card */}
-            <Card className="flex-1 flex flex-col chat-card-glow bg-background/60 backdrop-blur-md shadow-xl overflow-hidden relative border-border/50">
-                {/* Transparent Favicon Background */}
-                <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-10 dark:opacity-5">
+            {/* Chat Area - Full Screen Premium Card */}
+            <div className="flex-1 flex flex-col relative z-10 border-none shadow-none bg-transparent rounded-none h-full">
+                {/* Huge Colorful Favicon Background spanning the UI */}
+                <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none overflow-hidden">
                     <img 
                         src="/favicon.png" 
                         alt="Background Watermark" 
-                        className="w-[80%] h-[80%] object-contain scale-110 drop-shadow-2xl grayscale dark:grayscale-0"
+                        className="w-[120vw] h-[120vh] sm:w-[80vw] sm:h-[80vw] object-cover sm:object-contain opacity-10 dark:opacity-10 scale-[1.2] drop-shadow-[0_0_100px_rgba(var(--primary),0.3)] filter brightness-110 contrast-125 transition-transform duration-[20s] ease-linear hover:scale-[1.3]"
                     />
                 </div>
 
-                <CardContent className="flex-1 overflow-hidden p-0 relative z-10 bg-transparent">
-                    <ScrollArea className="h-full">
-                        <div className="p-4 sm:p-6 space-y-6 min-h-full flex flex-col justify-end pb-8">
-                            {historyLoading ? (
+                <div className="flex-1 overflow-hidden p-0 relative z-10 bg-transparent flex justify-center">
+                    <div className="w-full max-w-5xl h-full flex flex-col shadow-2xl shadow-primary/5 bg-background/40 backdrop-blur-[2px] border-x border-border/20">
+                        <ScrollArea className="flex-1 w-full">
+                            <div className="p-4 sm:p-8 space-y-8 min-h-full flex flex-col justify-end pb-12 w-full max-w-4xl mx-auto">
+                                {historyLoading ? (
                                 <div className="flex flex-col items-center justify-center py-20 gap-4 h-full m-auto">
                                     <div className="relative">
                                         <div className="h-12 w-12 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
@@ -361,19 +362,19 @@ const ChatAssistant = () => {
                             <div ref={scrollRef} className="h-px w-full" />
                         </div>
                     </ScrollArea>
-                </CardContent>
+                </div>
 
                 {/* Input Area */}
-                <CardFooter className="p-4 border-t border-border/40 bg-background/60 backdrop-blur-xl relative z-20">
+                <div className="p-4 sm:p-6 border-t border-border/40 bg-background/80 backdrop-blur-3xl relative z-20 w-full max-w-5xl mx-auto shadow-[0_-10px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_30px_rgba(0,0,0,0.5)] border-x border-border/20 rounded-b-none">
                     <form
-                        className="flex w-full items-end gap-3 chat-input transition-all duration-300 rounded-2xl bg-secondary/30 border border-border/50 p-1.5 focus-within:bg-background/80"
+                        className="flex w-full items-end gap-3 chat-input transition-all duration-300 rounded-2xl bg-secondary/50 border border-border/60 p-1.5 focus-within:bg-background/90 focus-within:shadow-lg focus-within:shadow-primary/5 mx-auto max-w-4xl"
                         onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                     >
                         <div className="relative flex-1 flex items-center">
                             <Input
                                 ref={inputRef}
                                 placeholder={sendMessageMutation.isPending ? "Quantify is analyzing..." : "Ask about a stock, your portfolio, or market trends..."}
-                                className="border-0 bg-transparent shadow-none focus-visible:ring-0 text-[15px] px-4 py-6 placeholder:text-muted-foreground/60"
+                                className="border-0 bg-transparent shadow-none focus-visible:ring-0 text-[15px] sm:text-base px-5 py-6 placeholder:text-muted-foreground/60"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 disabled={sendMessageMutation.isPending}
@@ -384,7 +385,7 @@ const ChatAssistant = () => {
                             size="icon"
                             disabled={!input.trim() || sendMessageMutation.isPending}
                             type="submit"
-                            className="shrink-0 h-11 w-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground send-btn m-1 disabled:opacity-30 disabled:hover:scale-100 disabled:hover:box-shadow-none"
+                            className="shrink-0 h-12 w-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground send-btn m-1.5 disabled:opacity-30 disabled:hover:scale-100 disabled:hover:box-shadow-none shadow-md shadow-primary/20"
                         >
                             {sendMessageMutation.isPending ? (
                                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -393,8 +394,9 @@ const ChatAssistant = () => {
                             )}
                         </Button>
                     </form>
-                </CardFooter>
-            </Card>
+                </div>
+            </div>
+            </div>
         </div>
     );
 };
