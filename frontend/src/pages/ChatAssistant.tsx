@@ -48,31 +48,91 @@ const ChatAssistant = () => {
         queryKey: ["chatHistory", sessionId],
         queryFn: async () => {
             if (!sessionId) return { messages: [] };
-            const response = await api.get(`/chat/sessions/${sessionId}`);
-            return response.data;
+            
+            try {
+                const response = await api.get(`/chat/sessions/${sessionId}`);
+                return response.data;
+            } catch (error) {
+                console.error("Failed to fetch chat history:", error);
+                return { messages: [] };
+            }
         },
         enabled: !!sessionId,
+        retry: 1, // Only retry once
+        staleTime: 30000, // Cache for 30 seconds
     });
 
     const history = sessionData?.messages || [];
 
     const sendMessageMutation = useMutation({
         mutationFn: async (message: string) => {
-            const response = await api.post("/chat", { message, sessionId });
-            return response.data;
+            console.log("🚀 Sending message to backend:", message);
+            console.log("📍 API endpoint:", api.defaults.baseURL);
+            console.log("🔑 Session ID:", sessionId);
+
+            // Add timeout protection
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+            try {
+                const response = await api.post("/chat", 
+                    { message, sessionId },
+                    { 
+                        signal: controller.signal,
+                        timeout: 30000 // 30 seconds
+                    }
+                );
+                
+                clearTimeout(timeoutId);
+                console.log("✅ Got response:", response.data);
+                return response.data;
+            } catch (error: any) {
+                clearTimeout(timeoutId);
+                
+                if (error.name === 'AbortError' || error.code === 'ECONNABORTED') {
+                    throw new Error('Request timeout - AI is taking too long to respond');
+                }
+                
+                console.error("❌ API Error:", error);
+                console.error("Error details:", error.response?.data);
+                throw error;
+            }
         },
         onSuccess: (data) => {
+            console.log("✅ Mutation success:", data);
+            
             if (!sessionId && data.sessionId) {
                 setSessionId(data.sessionId);
             }
-            queryClient.invalidateQueries({ queryKey: ["chatHistory", sessionId || data.sessionId] });
+            
+            // Invalidate queries to refresh chat history
+            queryClient.invalidateQueries({ 
+                queryKey: ["chatHistory", sessionId || data.sessionId] 
+            });
+            
             setInput("");
         },
         onError: (error: any) => {
+            console.error("❌ Mutation error:", error);
+            
+            let errorMessage = "Failed to get AI response.";
+            
+            if (error.message?.includes('timeout')) {
+                errorMessage = "Request timeout - please try again with a shorter message";
+            } else if (error.response?.status === 500) {
+                errorMessage = "Server error - the AI service might be down";
+            } else if (error.response?.status === 401) {
+                errorMessage = "Authentication error - please sign in again";
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
             toast({
                 variant: "destructive",
                 title: "AI Error",
-                description: error.response?.data?.message || "Failed to get AI response.",
+                description: errorMessage,
             });
         },
     });
@@ -85,7 +145,11 @@ const ChatAssistant = () => {
 
     const handleSend = () => {
         if (!input.trim() || sendMessageMutation.isPending) return;
-        sendMessageMutation.mutate(input.trim());
+        
+        const message = input.trim();
+        console.log("📤 Sending message:", message);
+        
+        sendMessageMutation.mutate(message);
     };
 
     if (!user) return null;
@@ -105,6 +169,7 @@ const ChatAssistant = () => {
                     </div>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => {
+                    console.log("🔄 Starting new chat session");
                     setSessionId(null);
                     queryClient.invalidateQueries({ queryKey: ["chatHistory"] });
                 }}>
@@ -149,7 +214,7 @@ const ChatAssistant = () => {
                                             {msg.role === "assistant" ? <Bot className="h-5 w-5" /> : <UserIcon className="h-5 w-5" />}
                                         </div>
                                         <div className={`flex flex-col gap-1 max-w-[80%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                                            <div className={`rounded-2xl px-4 py-2.5 text-sm ${msg.role === "user"
+                                            <div className={`rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${msg.role === "user"
                                                 ? "bg-primary text-primary-foreground"
                                                 : "bg-secondary text-foreground"
                                                 }`}>
@@ -173,6 +238,7 @@ const ChatAssistant = () => {
                                             <div className="h-1.5 w-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.2s]" />
                                             <div className="h-1.5 w-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.4s]" />
                                         </div>
+                                        <span className="text-xs text-muted-foreground">Thinking...</span>
                                     </div>
                                 </div>
                             )}
@@ -191,9 +257,18 @@ const ChatAssistant = () => {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             disabled={sendMessageMutation.isPending}
+                            autoFocus
                         />
-                        <Button size="icon" disabled={!input.trim() || sendMessageMutation.isPending}>
-                            <Send className="h-4 w-4" />
+                        <Button 
+                            size="icon" 
+                            disabled={!input.trim() || sendMessageMutation.isPending}
+                            type="submit"
+                        >
+                            {sendMessageMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Send className="h-4 w-4" />
+                            )}
                         </Button>
                     </form>
                 </CardFooter>
