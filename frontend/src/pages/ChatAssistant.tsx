@@ -220,8 +220,17 @@ const ChatAssistant = () => {
             </div>
 
             {/* Chat Area - Premium Card */}
-            <Card className="flex-1 flex flex-col chat-card-glow">
-                <CardContent className="flex-1 overflow-hidden p-0 relative bg-background/40 backdrop-blur-xl">
+            <Card className="flex-1 flex flex-col chat-card-glow border-white/10 bg-black/40 shadow-2xl overflow-hidden relative">
+                {/* Transparent Favicon Background */}
+                <div className="absolute inset-0 z-0 flex items-center justify-center opacity-[0.04] pointer-events-none mix-blend-screen">
+                    <img 
+                        src="/favicon.png" 
+                        alt="Background Watermark" 
+                        className="w-3/4 h-3/4 object-contain"
+                    />
+                </div>
+
+                <CardContent className="flex-1 overflow-hidden p-0 relative bg-transparent z-10 backdrop-blur-sm">
                     <ScrollArea className="h-full">
                         <div className="p-6 space-y-6 min-h-full flex flex-col justify-end">
                             {historyLoading ? (
@@ -237,22 +246,26 @@ const ChatAssistant = () => {
                             ) : !hasMessages ? (
                                 /* Empty State — Welcome Screen */
                                 <div className="flex flex-col items-center justify-center py-12 text-center space-y-10 m-auto mt-8 w-full">
-                                    {/* AI Avatar */}
+                                    {/* AI Avatar Character */}
                                     <div className="welcome-glow relative">
-                                        <div className="h-24 w-24 bg-gradient-to-br from-primary/30 via-primary/10 to-background rounded-[2rem] flex items-center justify-center border border-primary/30 shadow-2xl shadow-primary/20 rotate-3 transition-transform duration-500 hover:rotate-0 ai-avatar-ring">
-                                            <Bot className="h-12 w-12 text-primary drop-shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
+                                        <div className="h-28 w-28 bg-gradient-to-br from-primary/20 via-primary/5 to-background/50 rounded-full flex items-center justify-center border border-primary/30 shadow-[0_0_30px_rgba(var(--primary),0.15)] transition-transform duration-500 hover:scale-105 ai-avatar-ring backdrop-blur-md overflow-hidden">
+                                            <img 
+                                                src="https://api.dicebear.com/7.x/bottts/svg?seed=QuantifyAgent&backgroundColor=transparent&primaryColor=3b82f6" 
+                                                alt="AI Agent"
+                                                className="w-20 h-20 drop-shadow-[0_0_10px_rgba(var(--primary),0.5)]"
+                                            />
                                         </div>
-                                        <div className="absolute -top-2 -right-2 flex items-center justify-center bg-background rounded-full p-1 shadow-md">
-                                            <Sparkles className="h-5 w-5 text-primary animate-bounce" />
+                                        <div className="absolute -top-1 -right-1 flex items-center justify-center bg-background rounded-full p-1.5 shadow-lg border border-primary/20">
+                                            <Sparkles className="h-5 w-5 text-primary animate-bounce delay-150" />
                                         </div>
                                     </div>
 
-                                    <div className="space-y-3 max-w-lg">
-                                        <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+                                    <div className="space-y-3 max-w-lg relative z-10">
+                                        <h3 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground via-primary/80 to-foreground/80">
                                             Welcome back, {user.name?.split(' ')[0]}
                                         </h3>
-                                        <p className="text-[15px] text-muted-foreground leading-relaxed font-medium">
-                                            I'm analyzing real-time market data across NSE/BSE. Ask me anything about your portfolio performance, technical indicators, or broader market sentiment.
+                                        <p className="text-[16px] text-muted-foreground leading-relaxed font-medium">
+                                            I'm your intelligent trading agent. I can analyze your portfolio, track market sentiment, and provide technical insights.
                                         </p>
                                     </div>
 
@@ -288,12 +301,16 @@ const ChatAssistant = () => {
                                             {/* Avatar */}
                                             <div className={`shrink-0 h-8 w-8 rounded-xl flex items-center justify-center text-[10px] font-bold z-10 ${
                                                 msg.role === "assistant"
-                                                    ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/20 relative"
+                                                    ? "bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 text-primary-foreground shadow-md shadow-primary/10 relative overflow-hidden"
                                                     : "bg-secondary border border-border/50 text-secondary-foreground shadow-sm"
                                             }`}>
                                                 {msg.role === "assistant" ? (
                                                     <>
-                                                        <Bot className="h-4 w-4 drop-shadow-sm" />
+                                                        <img 
+                                                            src="https://api.dicebear.com/7.x/bottts/svg?seed=QuantifyAgent&backgroundColor=transparent&primaryColor=3b82f6" 
+                                                            alt="AI"
+                                                            className="h-6 w-6 drop-shadow-sm"
+                                                        />
                                                         <div className="absolute inset-0 bg-primary rounded-xl animate-pulse opacity-0" />
                                                     </>
                                                 ) : (
@@ -321,9 +338,13 @@ const ChatAssistant = () => {
 
                                     {/* Typing Indicator */}
                                     {sendMessageMutation.isPending && (
-                                        <div className="flex items-end gap-3 msg-enter-left">
-                                            <div className="shrink-0 h-8 w-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow-md shadow-primary/20 ai-avatar-ring">
-                                                <Bot className="h-4 w-4" />
+                                        <div className="flex items-end gap-3 msg-enter-left z-10">
+                                            <div className="shrink-0 h-8 w-8 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary-foreground border border-primary/20 flex items-center justify-center shadow-md shadow-primary/10 ai-avatar-ring overflow-hidden">
+                                                <img 
+                                                    src="https://api.dicebear.com/7.x/bottts/svg?seed=QuantifyAgent&backgroundColor=transparent&primaryColor=3b82f6" 
+                                                    alt="AI"
+                                                    className="h-6 w-6"
+                                                />
                                             </div>
                                             <div className="ai-bubble rounded-2xl rounded-bl-sm px-5 py-4 flex items-center gap-3">
                                                 <div className="flex gap-1.5 items-center">
