@@ -191,11 +191,8 @@ const ChatAssistant = () => {
             {/* Header */}
             <div className="flex items-center justify-between shrink-0 px-6 py-4 border-b border-border/40 bg-background/80 backdrop-blur-xl relative z-20">
                 <div className="flex items-center gap-4">
-                    <div className="relative">
-                        <div className="bg-gradient-to-br from-primary/30 via-primary/10 to-transparent p-3 rounded-2xl border border-primary/30 shadow-sm shadow-primary/20">
-                            <Brain className="h-7 w-7 text-primary" />
-                        </div>
-                        <div className="absolute -bottom-1 -right-1 h-3.5 w-3.5 bg-green-500 rounded-full border-[3px] border-background animate-pulse" />
+                    <div className="bg-gradient-to-br from-primary/30 via-primary/10 to-transparent p-3 rounded-2xl border border-primary/30 shadow-sm shadow-primary/20">
+                        <Brain className="h-7 w-7 text-primary" />
                     </div>
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-3">
@@ -226,12 +223,12 @@ const ChatAssistant = () => {
                     <img 
                         src="/favicon.png" 
                         alt="Background Watermark" 
-                        className="w-[120vw] h-[120vh] sm:w-[80vw] sm:h-[80vw] object-cover sm:object-contain opacity-10 dark:opacity-10 scale-[1.2] drop-shadow-[0_0_100px_rgba(var(--primary),0.3)] filter brightness-110 contrast-125 transition-transform duration-[20s] ease-linear hover:scale-[1.3]"
+                        className="w-[120vw] h-[120vh] sm:w-[90vw] sm:h-[90vw] object-cover sm:object-contain opacity-[0.25] dark:opacity-[0.15] scale-[1.1] "
                     />
                 </div>
 
-                <div className="flex-1 overflow-hidden p-0 relative z-10 bg-transparent flex justify-center">
-                    <div className="w-full max-w-5xl h-full flex flex-col shadow-2xl shadow-primary/5 bg-background/40 backdrop-blur-[2px] border-x border-border/20">
+                <div className="flex-1 overflow-hidden p-0 relative z-10 bg-transparent flex justify-center w-full">
+                    <div className="w-full h-full flex flex-col pt-4">
                         <ScrollArea className="flex-1 w-full">
                             <div className="p-4 sm:p-8 space-y-8 min-h-full flex flex-col justify-end pb-12 w-full max-w-4xl mx-auto">
                                 {historyLoading ? (
