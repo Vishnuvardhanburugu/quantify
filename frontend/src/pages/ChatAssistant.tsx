@@ -218,18 +218,21 @@ const ChatAssistant = () => {
 
             {/* Chat Area - Full Screen Premium Card */}
             <div className="flex-1 flex flex-col relative z-10 border-none shadow-none bg-transparent rounded-none h-full overflow-hidden">
-                {/* Huge Colorful Favicon Background spanning the UI */}
+                {/* Centered Colorful Favicon Background */}
                 <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
                     <img 
                         src="/favicon.png" 
                         alt="Background Watermark" 
-                        className="w-[120vw] h-[120vh] sm:w-[90vw] sm:h-[90vw] object-cover sm:object-contain opacity-[0.35] dark:opacity-[0.25] scale-[1.1]"
+                        className="w-[80vw] h-[80vw] max-w-[500px] max-h-[500px] object-contain opacity-[0.35] dark:opacity-[0.25] scale-110"
                     />
                 </div>
 
                 <div className="flex-1 overflow-hidden p-0 relative z-10 bg-transparent w-full">
                     <ScrollArea className="h-full w-full">
-                        <div className="p-4 sm:p-8 space-y-8 min-h-full flex flex-col justify-end pb-12 w-full max-w-4xl mx-auto">
+                        <div className="p-4 sm:p-8 space-y-8 min-h-full flex flex-col w-full max-w-4xl mx-auto focus:outline-none pb-12">
+                            {/* Flex spacer pushes content to the bottom unless it overflows */}
+                            <div className="flex-1" />
+                            
                             {historyLoading ? (
                                 <div className="flex flex-col items-center justify-center py-20 gap-4 h-full m-auto">
                                     <div className="relative">
