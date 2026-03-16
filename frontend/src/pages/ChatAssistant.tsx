@@ -220,19 +220,19 @@ const ChatAssistant = () => {
             </div>
 
             {/* Chat Area - Premium Card */}
-            <Card className="flex-1 flex flex-col chat-card-glow border-white/10 bg-black/40 shadow-2xl overflow-hidden relative">
+            <Card className="flex-1 flex flex-col chat-card-glow bg-background/60 backdrop-blur-md shadow-xl overflow-hidden relative border-border/50">
                 {/* Transparent Favicon Background */}
-                <div className="absolute inset-0 z-0 flex items-center justify-center opacity-[0.04] pointer-events-none mix-blend-screen">
+                <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-10 dark:opacity-5">
                     <img 
                         src="/favicon.png" 
                         alt="Background Watermark" 
-                        className="w-3/4 h-3/4 object-contain"
+                        className="w-[80%] h-[80%] object-contain scale-110 drop-shadow-2xl grayscale dark:grayscale-0"
                     />
                 </div>
 
-                <CardContent className="flex-1 overflow-hidden p-0 relative bg-transparent z-10 backdrop-blur-sm">
+                <CardContent className="flex-1 overflow-hidden p-0 relative z-10 bg-transparent">
                     <ScrollArea className="h-full">
-                        <div className="p-6 space-y-6 min-h-full flex flex-col justify-end">
+                        <div className="p-4 sm:p-6 space-y-6 min-h-full flex flex-col justify-end pb-8">
                             {historyLoading ? (
                                 <div className="flex flex-col items-center justify-center py-20 gap-4 h-full m-auto">
                                     <div className="relative">
