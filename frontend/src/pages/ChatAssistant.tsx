@@ -1,278 +1,140 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+// SIMPLIFIED TEST VERSION - Replace your ChatAssistant component with this temporarily
+
+import { useState } from "react";
 import api from "@/lib/api";
-import {
-    Send,
-    Bot,
-    User as UserIcon,
-    Loader2,
-    Brain,
-    Sparkles,
-    RefreshCw,
-    Trash2
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Send, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
-
-interface Message {
-    role: "user" | "assistant";
-    content: string;
-    createdAt: string;
-}
 
 const ChatAssistant = () => {
-    const navigate = useNavigate();
     const { toast } = useToast();
-    const queryClient = useQueryClient();
     const [input, setInput] = useState("");
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const [user, setUser] = useState<any>(null);
-    const [sessionId, setSessionId] = useState<number | null>(null);
+    const [messages, setMessages] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
 
-    useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-        if (!storedUser) {
-            navigate("/signin");
+    const handleSend = async () => {
+        // TEST: Add console log to see if this function is even called
+        console.log("🔥 HANDLE SEND CALLED!");
+        console.log("📝 Input value:", input);
+        
+        if (!input.trim()) {
+            console.log("❌ Input is empty, returning");
             return;
         }
-        setUser(JSON.parse(storedUser));
-    }, [navigate]);
 
-    // Fetch session messages if we have a sessionId
-    const { data: sessionData, isLoading: historyLoading } = useQuery({
-        queryKey: ["chatHistory", sessionId],
-        queryFn: async () => {
-            if (!sessionId) return { messages: [] };
+        try {
+            setIsLoading(true);
             
-            try {
-                const response = await api.get(`/chat/sessions/${sessionId}`);
-                return response.data;
-            } catch (error) {
-                console.error("Failed to fetch chat history:", error);
-                return { messages: [] };
-            }
-        },
-        enabled: !!sessionId,
-        retry: 1, // Only retry once
-        staleTime: 30000, // Cache for 30 seconds
-    });
-
-    const history = sessionData?.messages || [];
-
-    const sendMessageMutation = useMutation({
-        mutationFn: async (message: string) => {
-            console.log("🚀 Sending message to backend:", message);
-            console.log("📍 API endpoint:", api.defaults.baseURL);
-            console.log("🔑 Session ID:", sessionId);
-
-            // Add timeout protection
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-            try {
-                const response = await api.post("/chat", 
-                    { message, sessionId },
-                    { 
-                        signal: controller.signal,
-                        timeout: 30000 // 30 seconds
-                    }
-                );
-                
-                clearTimeout(timeoutId);
-                console.log("✅ Got response:", response.data);
-                return response.data;
-            } catch (error: any) {
-                clearTimeout(timeoutId);
-                
-                if (error.name === 'AbortError' || error.code === 'ECONNABORTED') {
-                    throw new Error('Request timeout - AI is taking too long to respond');
-                }
-                
-                console.error("❌ API Error:", error);
-                console.error("Error details:", error.response?.data);
-                throw error;
-            }
-        },
-        onSuccess: (data) => {
-            console.log("✅ Mutation success:", data);
+            // Add user message immediately
+            const userMessage = { role: 'user', content: input };
+            setMessages(prev => [...prev, userMessage]);
             
-            if (!sessionId && data.sessionId) {
-                setSessionId(data.sessionId);
-            }
+            console.log("📤 Sending to API:", input);
             
-            // Invalidate queries to refresh chat history
-            queryClient.invalidateQueries({ 
-                queryKey: ["chatHistory", sessionId || data.sessionId] 
+            // Call backend
+            const response = await api.post("/chat", { 
+                message: input,
+                sessionId: null 
             });
             
+            console.log("✅ Got response:", response.data);
+            
+            // Add AI response
+            const aiMessage = { 
+                role: 'assistant', 
+                content: response.data.assistantMessage?.content || response.data.response || 'No response received'
+            };
+            setMessages(prev => [...prev, aiMessage]);
+            
+            // Clear input
             setInput("");
-        },
-        onError: (error: any) => {
-            console.error("❌ Mutation error:", error);
             
-            let errorMessage = "Failed to get AI response.";
-            
-            if (error.message?.includes('timeout')) {
-                errorMessage = "Request timeout - please try again with a shorter message";
-            } else if (error.response?.status === 500) {
-                errorMessage = "Server error - the AI service might be down";
-            } else if (error.response?.status === 401) {
-                errorMessage = "Authentication error - please sign in again";
-            } else if (error.response?.data?.message) {
-                errorMessage = error.response.data.message;
-            } else if (error.message) {
-                errorMessage = error.message;
-            }
-            
+        } catch (error) {
+            console.error("❌ Error:", error);
             toast({
                 variant: "destructive",
-                title: "AI Error",
-                description: errorMessage,
+                title: "Error",
+                description: error.message,
             });
-        },
-    });
-
-    useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollIntoView({ behavior: "smooth" });
+        } finally {
+            setIsLoading(false);
         }
-    }, [history, sendMessageMutation.isPending]);
-
-    const handleSend = () => {
-        if (!input.trim() || sendMessageMutation.isPending) return;
-        
-        const message = input.trim();
-        console.log("📤 Sending message:", message);
-        
-        sendMessageMutation.mutate(message);
     };
 
-    if (!user) return null;
-
     return (
-        <div className="container py-8 max-w-4xl h-[calc(100vh-8rem)] flex flex-col gap-6 animate-fade-in">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="bg-primary/10 p-2 rounded-lg">
-                        <Brain className="h-6 w-6 text-primary" />
+        <div className="container py-8 max-w-4xl">
+            <h1 className="text-2xl font-bold mb-6">AI Chat (Debug Version)</h1>
+            
+            {/* Messages */}
+            <div className="space-y-4 mb-6 min-h-[400px] bg-secondary/20 p-4 rounded-lg">
+                {messages.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-10">
+                        Send a message to start chatting
                     </div>
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">AI Trading Assistant</h1>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            Powered by Quantify Intelligence <Sparkles className="h-3 w-3" />
-                        </p>
+                ) : (
+                    messages.map((msg, i) => (
+                        <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[70%] rounded-lg p-3 ${
+                                msg.role === 'user' 
+                                    ? 'bg-primary text-primary-foreground' 
+                                    : 'bg-secondary'
+                            }`}>
+                                {msg.content}
+                            </div>
+                        </div>
+                    ))
+                )}
+                {isLoading && (
+                    <div className="flex gap-2">
+                        <div className="bg-secondary rounded-lg p-3">
+                            <div className="flex gap-1">
+                                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.2s]" />
+                                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.4s]" />
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => {
-                    console.log("🔄 Starting new chat session");
-                    setSessionId(null);
-                    queryClient.invalidateQueries({ queryKey: ["chatHistory"] });
-                }}>
-                    <RefreshCw className="h-4 w-4 mr-2" /> New Chat
-                </Button>
+                )}
             </div>
 
-            <Card className="flex-1 flex flex-col overflow-hidden glass-card">
-                <CardContent className="flex-1 overflow-hidden p-0">
-                    <ScrollArea className="h-full p-6">
-                        <div className="space-y-6">
-                            {historyLoading ? (
-                                <div className="flex justify-center py-10">
-                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                                </div>
-                            ) : history?.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-                                    <div className="h-16 w-16 bg-secondary rounded-full flex items-center justify-center">
-                                        <Bot className="h-8 w-8 text-muted-foreground" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-medium">Hello there!</h3>
-                                        <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                                            I'm your AI assistant. Ask me anything about your portfolio, trade psychology, or market analysis.
-                                        </p>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2 justify-center max-w-sm">
-                                        {["How is my portfolio doing?", "Should I buy RELIANCE.NS?", "Explain bearish divergence"].map(q => (
-                                            <Button key={q} variant="secondary" size="sm" onClick={() => setInput(q)}>
-                                                {q}
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : (
-                                history?.map((msg: Message, i: number) => (
-                                    <div
-                                        key={i}
-                                        className={`flex items-start gap-4 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
-                                    >
-                                        <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === "assistant" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
-                                            {msg.role === "assistant" ? <Bot className="h-5 w-5" /> : <UserIcon className="h-5 w-5" />}
-                                        </div>
-                                        <div className={`flex flex-col gap-1 max-w-[80%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                                            <div className={`rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${msg.role === "user"
-                                                ? "bg-primary text-primary-foreground"
-                                                : "bg-secondary text-foreground"
-                                                }`}>
-                                                {msg.content}
-                                            </div>
-                                            <span className="text-[10px] text-muted-foreground">
-                                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                            {sendMessageMutation.isPending && (
-                                <div className="flex items-start gap-4">
-                                    <div className="mt-1 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-                                        <Bot className="h-5 w-5" />
-                                    </div>
-                                    <div className="bg-secondary rounded-2xl px-4 py-2.5 flex items-center gap-2">
-                                        <div className="flex gap-1">
-                                            <div className="h-1.5 w-1.5 bg-muted-foreground rounded-full animate-bounce" />
-                                            <div className="h-1.5 w-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.2s]" />
-                                            <div className="h-1.5 w-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:0.4s]" />
-                                        </div>
-                                        <span className="text-xs text-muted-foreground">Thinking...</span>
-                                    </div>
-                                </div>
-                            )}
-                            <div ref={scrollRef} />
-                        </div>
-                    </ScrollArea>
-                </CardContent>
-                <CardFooter className="p-4 border-t border-border">
-                    <form
-                        className="flex w-full items-center gap-3"
-                        onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                    >
-                        <Input
-                            placeholder="Type your message here..."
-                            className="flex-1"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            disabled={sendMessageMutation.isPending}
-                            autoFocus
-                        />
-                        <Button 
-                            size="icon" 
-                            disabled={!input.trim() || sendMessageMutation.isPending}
-                            type="submit"
-                        >
-                            {sendMessageMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <Send className="h-4 w-4" />
-                            )}
-                        </Button>
-                    </form>
-                </CardFooter>
-            </Card>
+            {/* Input Form */}
+            <form 
+                onSubmit={(e) => {
+                    console.log("📝 FORM SUBMITTED!");
+                    e.preventDefault();
+                    handleSend();
+                }}
+                className="flex gap-2"
+            >
+                <Input
+                    type="text"
+                    placeholder="Type a message..."
+                    value={input}
+                    onChange={(e) => {
+                        console.log("✏️ Input changed:", e.target.value);
+                        setInput(e.target.value);
+                    }}
+                    disabled={isLoading}
+                    className="flex-1"
+                />
+                <Button 
+                    type="submit"
+                    disabled={!input.trim() || isLoading}
+                    onClick={() => console.log("🖱️ BUTTON CLICKED!")}
+                >
+                    <Send className="h-4 w-4" />
+                </Button>
+            </form>
+
+            {/* Debug Info */}
+            <div className="mt-4 p-4 bg-secondary/30 rounded text-xs font-mono">
+                <div>Input value: "{input}"</div>
+                <div>Input length: {input.length}</div>
+                <div>Is loading: {isLoading ? 'Yes' : 'No'}</div>
+                <div>Button disabled: {(!input.trim() || isLoading) ? 'Yes' : 'No'}</div>
+                <div>Messages count: {messages.length}</div>
+            </div>
         </div>
     );
 };
