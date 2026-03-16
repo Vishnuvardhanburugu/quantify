@@ -217,21 +217,20 @@ const ChatAssistant = () => {
             </div>
 
             {/* Chat Area - Full Screen Premium Card */}
-            <div className="flex-1 flex flex-col relative z-10 border-none shadow-none bg-transparent rounded-none h-full">
+            <div className="flex-1 flex flex-col relative z-10 border-none shadow-none bg-transparent rounded-none h-full overflow-hidden">
                 {/* Huge Colorful Favicon Background spanning the UI */}
-                <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none overflow-hidden">
+                <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
                     <img 
                         src="/favicon.png" 
                         alt="Background Watermark" 
-                        className="w-[120vw] h-[120vh] sm:w-[90vw] sm:h-[90vw] object-cover sm:object-contain opacity-[0.25] dark:opacity-[0.15] scale-[1.1] "
+                        className="w-[120vw] h-[120vh] sm:w-[90vw] sm:h-[90vw] object-cover sm:object-contain opacity-[0.35] dark:opacity-[0.25] scale-[1.1]"
                     />
                 </div>
 
-                <div className="flex-1 overflow-hidden p-0 relative z-10 bg-transparent flex justify-center w-full">
-                    <div className="w-full h-full flex flex-col pt-4">
-                        <ScrollArea className="flex-1 w-full">
-                            <div className="p-4 sm:p-8 space-y-8 min-h-full flex flex-col justify-end pb-12 w-full max-w-4xl mx-auto">
-                                {historyLoading ? (
+                <div className="flex-1 overflow-hidden p-0 relative z-10 bg-transparent w-full">
+                    <ScrollArea className="h-full w-full">
+                        <div className="p-4 sm:p-8 space-y-8 min-h-full flex flex-col justify-end pb-12 w-full max-w-4xl mx-auto">
+                            {historyLoading ? (
                                 <div className="flex flex-col items-center justify-center py-20 gap-4 h-full m-auto">
                                     <div className="relative">
                                         <div className="h-12 w-12 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
@@ -244,17 +243,13 @@ const ChatAssistant = () => {
                             ) : !hasMessages ? (
                                 /* Empty State — Welcome Screen */
                                 <div className="flex flex-col items-center justify-center py-12 text-center space-y-10 m-auto mt-8 w-full">
-                                    {/* AI Avatar Character */}
+                                    {/* AI Avatar Character - Elegant Version */}
                                     <div className="welcome-glow relative">
-                                        <div className="h-28 w-28 bg-gradient-to-br from-primary/20 via-primary/5 to-background/50 rounded-full flex items-center justify-center border border-primary/30 shadow-[0_0_30px_rgba(var(--primary),0.15)] transition-transform duration-500 hover:scale-105 ai-avatar-ring backdrop-blur-md overflow-hidden">
-                                            <img 
-                                                src="https://api.dicebear.com/7.x/bottts/svg?seed=QuantifyAgent&backgroundColor=transparent&primaryColor=3b82f6" 
-                                                alt="AI Agent"
-                                                className="w-20 h-20 drop-shadow-[0_0_10px_rgba(var(--primary),0.5)]"
-                                            />
+                                        <div className="h-28 w-28 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent rounded-full flex items-center justify-center border border-primary/30 shadow-[0_0_30px_rgba(var(--primary),0.2)] transition-transform duration-500 hover:scale-105 ai-avatar-ring backdrop-blur-xl">
+                                            <Bot className="h-14 w-14 text-primary drop-shadow-[0_0_12px_rgba(var(--primary),0.8)]" />
                                         </div>
-                                        <div className="absolute -top-1 -right-1 flex items-center justify-center bg-background rounded-full p-1.5 shadow-lg border border-primary/20">
-                                            <Sparkles className="h-5 w-5 text-primary animate-bounce delay-150" />
+                                        <div className="absolute -top-1 -right-1 flex items-center justify-center bg-background rounded-full p-2 shadow-lg border border-primary/20">
+                                            <Sparkles className="h-6 w-6 text-primary animate-pulse" />
                                         </div>
                                     </div>
 
@@ -273,7 +268,7 @@ const ChatAssistant = () => {
                                             <button
                                                 key={item.prompt}
                                                 onClick={() => handleSend(item.prompt)}
-                                                className="prompt-card group flex items-start gap-4 p-4 rounded-2xl border border-border/60 bg-background/50 text-left"
+                                                className="prompt-card group flex items-start gap-4 p-4 rounded-2xl border border-border/60 bg-background/50 hover:bg-background/80 text-left backdrop-blur-md"
                                                 style={{ animationDelay: `${idx * 100}ms`, animation: 'fadeIn 0.5s ease-out forwards', opacity: 0 }}
                                             >
                                                 <div className="prompt-icon-shimmer shrink-0 h-10 w-10 rounded-xl bg-gradient-to-br from-primary/10 to-transparent flex items-center justify-center border border-primary/10 group-hover:bg-primary/20 transition-colors duration-300">
@@ -297,22 +292,15 @@ const ChatAssistant = () => {
                                             className={`flex items-end gap-3 w-full ${msg.role === "user" ? "flex-row-reverse msg-enter-right" : "flex-row msg-enter-left"}`}
                                         >
                                             {/* Avatar */}
-                                            <div className={`shrink-0 h-8 w-8 rounded-xl flex items-center justify-center text-[10px] font-bold z-10 ${
+                                            <div className={`shrink-0 h-9 w-9 rounded-xl flex items-center justify-center text-[10px] font-bold z-10 ${
                                                 msg.role === "assistant"
-                                                    ? "bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 text-primary-foreground shadow-md shadow-primary/10 relative overflow-hidden"
+                                                    ? "bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 text-primary-foreground shadow-md shadow-primary/10 relative overflow-hidden backdrop-blur-sm"
                                                     : "bg-secondary border border-border/50 text-secondary-foreground shadow-sm"
                                             }`}>
                                                 {msg.role === "assistant" ? (
-                                                    <>
-                                                        <img 
-                                                            src="https://api.dicebear.com/7.x/bottts/svg?seed=QuantifyAgent&backgroundColor=transparent&primaryColor=3b82f6" 
-                                                            alt="AI"
-                                                            className="h-6 w-6 drop-shadow-sm"
-                                                        />
-                                                        <div className="absolute inset-0 bg-primary rounded-xl animate-pulse opacity-0" />
-                                                    </>
+                                                    <Bot className="h-5 w-5 text-primary" />
                                                 ) : (
-                                                    <UserIcon className="h-4 w-4" />
+                                                    <UserIcon className="h-5 w-5" />
                                                 )}
                                             </div>
 
@@ -337,12 +325,8 @@ const ChatAssistant = () => {
                                     {/* Typing Indicator */}
                                     {sendMessageMutation.isPending && (
                                         <div className="flex items-end gap-3 msg-enter-left z-10">
-                                            <div className="shrink-0 h-8 w-8 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary-foreground border border-primary/20 flex items-center justify-center shadow-md shadow-primary/10 ai-avatar-ring overflow-hidden">
-                                                <img 
-                                                    src="https://api.dicebear.com/7.x/bottts/svg?seed=QuantifyAgent&backgroundColor=transparent&primaryColor=3b82f6" 
-                                                    alt="AI"
-                                                    className="h-6 w-6"
-                                                />
+                                            <div className="shrink-0 h-9 w-9 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary-foreground border border-primary/20 flex items-center justify-center shadow-md shadow-primary/10 ai-avatar-ring overflow-hidden backdrop-blur-sm">
+                                                <Bot className="h-5 w-5 text-primary" />
                                             </div>
                                             <div className="ai-bubble rounded-2xl rounded-bl-sm px-5 py-4 flex items-center gap-3">
                                                 <div className="flex gap-1.5 items-center">
@@ -350,7 +334,7 @@ const ChatAssistant = () => {
                                                     <div className="typing-dot" />
                                                     <div className="typing-dot" />
                                                 </div>
-                                                <span className="text-xs font-medium text-primary/70 ml-1">Computing outcome...</span>
+                                                <span className="text-sm font-medium text-primary/80 ml-1">Thinking...</span>
                                             </div>
                                         </div>
                                     )}
@@ -362,16 +346,16 @@ const ChatAssistant = () => {
                 </div>
 
                 {/* Input Area */}
-                <div className="p-4 sm:p-6 border-t border-border/40 bg-background/80 backdrop-blur-3xl relative z-20 w-full max-w-5xl mx-auto shadow-[0_-10px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_30px_rgba(0,0,0,0.5)] border-x border-border/20 rounded-b-none">
+                <div className="p-4 sm:p-6 border-t border-border/20 bg-background/60 backdrop-blur-3xl relative z-20 w-full shadow-[0_-10px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_30px_rgba(0,0,0,0.3)]">
                     <form
-                        className="flex w-full items-end gap-3 chat-input transition-all duration-300 rounded-2xl bg-secondary/50 border border-border/60 p-1.5 focus-within:bg-background/90 focus-within:shadow-lg focus-within:shadow-primary/5 mx-auto max-w-4xl"
+                        className="flex w-full items-end gap-3 chat-input transition-all duration-300 rounded-2xl bg-secondary/80 border border-border/60 p-1.5 focus-within:bg-background/90 focus-within:shadow-xl focus-within:shadow-primary/10 mx-auto max-w-4xl backdrop-blur-lg"
                         onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                     >
                         <div className="relative flex-1 flex items-center">
                             <Input
                                 ref={inputRef}
-                                placeholder={sendMessageMutation.isPending ? "Quantify is analyzing..." : "Ask about a stock, your portfolio, or market trends..."}
-                                className="border-0 bg-transparent shadow-none focus-visible:ring-0 text-[15px] sm:text-base px-5 py-6 placeholder:text-muted-foreground/60"
+                                placeholder={sendMessageMutation.isPending ? "Quantify is thinking..." : "Ask about a stock, your portfolio, or market trends..."}
+                                className="border-0 bg-transparent shadow-none focus-visible:ring-0 text-[15px] sm:text-base px-5 py-4 h-auto placeholder:text-muted-foreground/60"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 disabled={sendMessageMutation.isPending}
@@ -382,7 +366,7 @@ const ChatAssistant = () => {
                             size="icon"
                             disabled={!input.trim() || sendMessageMutation.isPending}
                             type="submit"
-                            className="shrink-0 h-12 w-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground send-btn m-1.5 disabled:opacity-30 disabled:hover:scale-100 disabled:hover:box-shadow-none shadow-md shadow-primary/20"
+                            className="shrink-0 h-12 w-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground send-btn m-1 disabled:opacity-30 disabled:hover:scale-100 disabled:hover:box-shadow-none shadow-md shadow-primary/20"
                         >
                             {sendMessageMutation.isPending ? (
                                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -392,7 +376,6 @@ const ChatAssistant = () => {
                         </Button>
                     </form>
                 </div>
-            </div>
             </div>
         </div>
     );
